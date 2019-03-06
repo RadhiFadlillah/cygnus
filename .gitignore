@@ -1,0 +1,8 @@
+# Config dir
+.vscode
+
+# Development files and dirs
+temp/
+
+# Executable file
+solid-eye
