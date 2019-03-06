@@ -114,16 +114,16 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 	defer cam.waitGroup.Done()
 
 	// Make sure directory exists
-	err := os.MkdirAll(cam.HlsSegmentsDir, os.ModePerm)
-	if err != nil {
-		cam.chError <- err
+	dirInfo, err := os.Stat(cam.HlsSegmentsDir)
+	if os.IsNotExist(err) || !dirInfo.IsDir() {
+		cam.chError <- fmt.Errorf("segment directory %s does not exist", cam.HlsSegmentsDir)
 		return
 	}
 
 	hlsPlaylistDir := fp.Dir(cam.HlsPlaylistPath)
-	err = os.MkdirAll(hlsPlaylistDir, os.ModePerm)
-	if err != nil {
-		cam.chError <- err
+	dirInfo, err = os.Stat(hlsPlaylistDir)
+	if os.IsNotExist(err) || !dirInfo.IsDir() {
+		cam.chError <- fmt.Errorf("playlist directory %s does not exist", hlsPlaylistDir)
 		return
 	}
 
@@ -159,9 +159,9 @@ func (cam *RaspiCam) saveStreamToFile(input io.Reader) {
 	defer cam.waitGroup.Done()
 
 	// Make sure directory exists
-	err := os.MkdirAll(cam.SaveDir, os.ModePerm)
-	if err != nil {
-		cam.chError <- err
+	dirInfo, err := os.Stat(cam.SaveDir)
+	if os.IsNotExist(err) || !dirInfo.IsDir() {
+		cam.chError <- fmt.Errorf("save directory %s does not exist", cam.SaveDir)
 		return
 	}
 
