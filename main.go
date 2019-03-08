@@ -1,38 +1,32 @@
+//go:generate go run assets-generator.go
+
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"os"
+	"net/http"
 	fp "path/filepath"
-	"strings"
 
 	"github.com/RadhiFadlillah/solid-eye/camera"
-	"github.com/RadhiFadlillah/solid-eye/watcher"
-	"github.com/fsnotify/fsnotify"
+	"github.com/RadhiFadlillah/solid-eye/handler"
+	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	saveDir      = "temp/save"
+	storageDir   = "temp/save"
 	segmentsDir  = "temp/segments"
 	playlistPath = "temp/playlist.m3u8"
 )
 
 func main() {
-	// Make sure all needed directories exist
-	os.MkdirAll(saveDir, os.ModePerm)
-	os.MkdirAll(segmentsDir, os.ModePerm)
-	os.MkdirAll(fp.Dir(playlistPath), os.ModePerm)
-
 	// Prepare channel
 	chError := make(chan error)
 	defer close(chError)
 
 	// Start camera and watcher
 	startCamera(chError)
-	startPlaylistWatcher(chError)
+	serveWebView(chError)
 
 	// Watch channel until error received
 	select {
@@ -48,12 +42,10 @@ func startCamera(chError chan error) {
 		FlipView: true,
 
 		GenerateHlsSegments: true,
-		HlsSegmentsDir:      segmentsDir,
-		HlsPlaylistPath:     playlistPath,
-		HlsBaseURL:          "http://localhost:8080/stream/",
+		HlsLiveSegmentsDir:  fp.Join(segmentsDir, "live"),
 
-		SaveStreamToFile: true,
-		SaveDir:          saveDir,
+		SaveToStorage: true,
+		StorageDir:    storageDir,
 	}
 
 	go func() {
@@ -64,35 +56,21 @@ func startCamera(chError chan error) {
 	}()
 }
 
-func startPlaylistWatcher(chError chan error) {
-	handler := func(event fsnotify.Event) error {
-		if event.Op != fsnotify.Write {
-			return nil
-		}
-
-		f, err := os.Open(playlistPath)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		buffer := bytes.NewBuffer(nil)
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if strings.HasPrefix(line, "#EXTINF") || strings.HasPrefix(line, "http") {
-				buffer.WriteString(line)
-			}
-		}
-
-		logrus.Println(buffer.String())
-		return nil
+func serveWebView(chError chan error) {
+	hdl := handler.WebHandler{
+		HlsSegmentsDir: segmentsDir,
 	}
 
+	router := httprouter.New()
+	router.GET("/", hdl.ServeIndexPage)
+	router.GET("/playlist/:name", hdl.ServeHlsPlaylist)
+	router.GET("/stream/:name/:index", hdl.ServeHlsStream)
+
 	go func() {
-		err := watcher.WatchFile(playlistPath, handler)
+		logrus.Println("web server running in port :8080")
+		err := http.ListenAndServe(":8080", router)
 		if err != nil {
-			chError <- fmt.Errorf("playlist watcher error: %v", err)
+			chError <- fmt.Errorf("web server error: %v", err)
 		}
 	}()
 }
