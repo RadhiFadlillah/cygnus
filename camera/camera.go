@@ -163,6 +163,7 @@ func (cam *RaspiCam) saveToStorage(input io.Reader) {
 	outputPath := fp.Join(cam.StorageDir, "%Y-%m-%d-%H%M%S.mp4")
 	cmd := exec.Command("ffmpeg", "-y",
 		"-loglevel", "fatal",
+		"-framerate", "30",
 		"-i", "pipe:0",
 		"-codec", "copy",
 		"-f", "segment",
@@ -211,11 +212,25 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 		return
 	}
 
+	// If the directories are not empty, remove all *.ts file
+	err = fp.Walk(cam.HlsLiveSegmentsDir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() && fp.Ext(info.Name()) == ".ts" {
+			return os.Remove(path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		cam.chError <- fmt.Errorf("failed to clear live segments dir %s: %v", cam.HlsLiveSegmentsDir, err)
+		return
+	}
+
 	// Prepare ffmpeg for generating HLS segments
 	playlistPath := fp.Join(cam.HlsLiveSegmentsDir, "playlist.m3u8")
 	segmentPath := fp.Join(cam.HlsLiveSegmentsDir, "%d.ts")
 	cmd := exec.Command("ffmpeg", "-y",
 		"-loglevel", "fatal",
+		"-framerate", "30",
 		"-i", "pipe:0",
 		"-codec", "copy",
 		"-bsf", "h264_mp4toannexb",
