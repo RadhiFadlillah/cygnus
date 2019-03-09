@@ -7,8 +7,8 @@ import (
 	"net/http"
 	fp "path/filepath"
 
-	"github.com/RadhiFadlillah/solid-eye/camera"
-	"github.com/RadhiFadlillah/solid-eye/handler"
+	"github.com/RadhiFadlillah/cygnus/camera"
+	"github.com/RadhiFadlillah/cygnus/handler"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 )
