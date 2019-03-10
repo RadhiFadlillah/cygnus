@@ -2,22 +2,54 @@
 <html lang="en">
 
 <head>
-    <title>Document</title>
+    <title>Live Stream - Cygnus</title>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://vjs.zencdn.net/7.4.1/video-js.css" rel="stylesheet">
+
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="/res/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/res/apple-touch-icon-144x144.png">
+    <link rel="icon" type="image/png" href="/res/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/res/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/x-icon" href="/res/favicon.ico">
+
+    <link href="/css/fontawesome.min.css" rel="stylesheet">
+    <link href="/css/video-js.min.css" rel="stylesheet">
+    <link href="/css/stylesheet.css" rel="stylesheet">
+    <link href="/css/cygnus-video.css" rel="stylesheet">
 </head>
 
 <body>
-    <video id='my-video' class='video-js' controls preload='auto' width='800' height='600' data-setup='{}'>
-        <source src="/playlist/live" type="application/vnd.apple.mpegurl">
-        <p class='vjs-no-js'>
-            To view this video please enable JavaScript, and consider upgrading to a web browser that
-            <a href='https://videojs.com/html5-video-support/' target='_blank'>supports HTML5 video</a>
-        </p>
-    </video>
+    <div class="page" id="home">
+        <div id="logo">
+            <img src="/res/logo.svg">
+        </div>
+        <div class="page__sidebar">
+            <a href="/" title="Live stream">
+                <i class="fas fa-fw fa-video"></i>
+            </a>
+            <a href="#" title="Storage">
+                <i class="fas fa-fw fa-hdd"></i>
+            </a>
+            <a href="#" title="Setting">
+                <i class="fas fa-fw fa-cog"></i>
+            </a>
+        </div>
+        <h1 class="page__header">
+            Cashier #1
+        </h1>
+        <div class="page__content">
+            <video id="video-viewer" class="cygnus-video video-js" controls preload="auto" data-setup='{"autoplay": true}'>
+                <source src="/playlist/live" type="application/vnd.apple.mpegurl">
+                <p class="vjs-no-js">
+                    To view this video please enable JavaScript, and consider upgrading to a web browser that
+                    <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+                </p>
+            </video>
+        </div>
+    </div>
 
-    <script src='https://vjs.zencdn.net/7.4.1/video.js'></script>
+    <script src="/js/video.min.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,115 @@
+:root {
+    --bg: #EEE;
+    --sidebarBg: #292929;
+    --sidebarHoverBg: #232323;
+    --headerBg: #FFF;
+    --contentBg: #FFF;
+    --border: #E5E5E5;
+    --color: #232323;
+    --colorLink: #999;
+    --colorSidebar: #FFF;
+    --main: #03a9f4;
+    --mainDark: #0277bd;
+    --mainLight: #4dd0e1;
+}
+
+&.night {
+    --bg: #1F1F1F;
+    --headerBg: #292929;
+    --contentBg: #292929;
+    --border: #191919;
+    --color: #FFF;
+}
+
+* {
+    border-width: 0;
+    box-sizing: border-box;
+    font-family: "Source Sans Pro", sans-serif;
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+}
+
+a {
+    cursor: pointer;
+}
+
+.spacer {
+    flex: 1;
+}
+
+body {
+    overflow: hidden;
+}
+
+.page {
+    display: grid;
+    grid-template-rows: 60px 1fr;
+    grid-template-columns: 60px 1fr;
+    background-color: var(--bg);
+    width: 100vw;
+    height: 100vh;
+
+    #logo {
+        padding: 8px;
+        background-color: var(--main);
+        grid-row: 1 / span 1;
+        grid-column: 1 / span 1;
+
+        img {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+        }
+    }
+
+    .page__sidebar {
+        display: flex;
+        grid-row: 2 / span 1;
+        grid-column: 1 / span 1;
+        flex-flow: column nowrap;
+        background-color: var(--sidebarBg);
+
+        a {
+            flex-shrink: 0;
+            display: block;
+            width: 60px;
+            line-height: 60px;
+            text-align: center;
+            font-size: 1em;
+            color: var(--colorSidebar);
+
+            &:hover,
+            &:focus {
+                color: var(--mainLight);
+                background-color: var(--sidebarHoverBg);
+            }
+        }
+    }
+
+    .page__header {
+        color: var(--color);
+        background-color: var(--headerBg);
+        border-bottom: 1px solid var(--border);
+        line-height: 60px;
+        font-size: 1.3em;
+        font-weight: 600;
+        padding: 0 16px;
+    }
+
+    .page__content {
+        display: block;
+        overflow-y: auto;
+    }
+}
+
+#home {
+    .page__content {
+        padding: 16px;
+
+        #video-viewer {
+            width: 100%;
+            height: 100%;
+        }
+    }
+}

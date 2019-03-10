@@ -1,0 +1,30 @@
+:root {
+    --videoBarBg: rgba(41, 41, 41, .7);
+}
+
+.cygnus-video {
+    .vjs-poster {
+        background-size: auto;
+    }
+
+    button.vjs-big-play-button {
+        border-width: 0;
+        border-radius: 0;
+        background-color: var(--videoBarBg);
+
+        &:hover {
+            color: var(--mainLight);
+        }
+    }
+
+    .vjs-control-bar {
+        background-color: var(--videoBarBg);
+    }
+
+    &:hover {
+        button.vjs-big-play-button {
+            color: var(--mainLight);
+            background-color: var(--sidebarBg);
+        }
+    }
+}

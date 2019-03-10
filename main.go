@@ -61,7 +61,16 @@ func serveWebView(chError chan error) {
 		HlsSegmentsDir: segmentsDir,
 	}
 
+	// Create router
 	router := httprouter.New()
+
+	// Serve files
+	router.GET("/fonts/*filepath", hdl.ServeFile)
+	router.GET("/res/*filepath", hdl.ServeFile)
+	router.GET("/css/*filepath", hdl.ServeFile)
+	router.GET("/js/*filepath", hdl.ServeFile)
+
+	// Serve UI
 	router.GET("/", hdl.ServeIndexPage)
 	router.GET("/playlist/:name", hdl.ServeHlsPlaylist)
 	router.GET("/stream/:name/:index", hdl.ServeHlsStream)

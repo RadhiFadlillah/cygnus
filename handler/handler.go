@@ -34,6 +34,10 @@ func (h *WebHandler) ServeHlsPlaylist(w http.ResponseWriter, r *http.Request, ps
 
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if videoName == "live" {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
+
 	http.ServeFile(w, r, playlistPath)
 }
 
