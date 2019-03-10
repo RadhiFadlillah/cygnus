@@ -68,7 +68,7 @@ func serveWebView(chError chan error) {
 	router.GET("/fonts/*filepath", hdl.ServeFile)
 	router.GET("/res/*filepath", hdl.ServeFile)
 	router.GET("/css/*filepath", hdl.ServeFile)
-	router.GET("/js/*filepath", hdl.ServeFile)
+	router.GET("/js/*filepath", hdl.ServeJsFile)
 
 	// Serve UI
 	router.GET("/", hdl.ServeIndexPage)

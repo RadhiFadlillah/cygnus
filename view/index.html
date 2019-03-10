@@ -17,6 +17,9 @@
     <link href="/css/video-js.min.css" rel="stylesheet">
     <link href="/css/stylesheet.css" rel="stylesheet">
     <link href="/css/cygnus-video.css" rel="stylesheet">
+
+    <script src="/js/video.min.js"></script>
+    <script src="/js/vue.min.js"></script>
 </head>
 
 <body>
@@ -39,7 +42,7 @@
             Cashier #1
         </h1>
         <div class="page__content">
-            <video id="video-viewer" class="cygnus-video video-js" controls preload="auto" data-setup='{"autoplay": true}'>
+            <video id="video-viewer" class="cygnus-video video-js" controls preload="auto">
                 <source src="/playlist/live" type="application/vnd.apple.mpegurl">
                 <p class="vjs-no-js">
                     To view this video please enable JavaScript, and consider upgrading to a web browser that
@@ -49,7 +52,9 @@
         </div>
     </div>
 
-    <script src="/js/video.min.js"></script>
+    <script>
+        var player = videojs("video-viewer", { autoplay: true });
+    </script>
 </body>
 
 </html>

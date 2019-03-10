@@ -5,10 +5,15 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"os"
+	"path"
 	fp "path/filepath"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
+
+var developmentMode = false
 
 // WebHandler is handler for serving the web interface.
 type WebHandler struct {
@@ -17,6 +22,26 @@ type WebHandler struct {
 
 // ServeFile is handler for general file request
 func (h *WebHandler) ServeFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	err := serveFile(w, r.URL.Path)
+	checkError(err)
+}
+
+// ServeJsFile is handler for GET /js/
+func (h *WebHandler) ServeJsFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	filePath := r.URL.Path
+	fileName := path.Base(filePath)
+	fileDir := path.Dir(filePath)
+
+	if developmentMode && fp.Ext(fileName) == ".js" && strings.HasSuffix(fileName, ".min.js") {
+		fileName = strings.TrimSuffix(fileName, ".min.js") + ".js"
+		filePath = path.Join(fileDir, fileName)
+		if fileExists(filePath) {
+			redirectPage(w, r, filePath)
+		}
+
+		return
+	}
+
 	err := serveFile(w, r.URL.Path)
 	checkError(err)
 }
@@ -35,7 +60,7 @@ func (h *WebHandler) ServeHlsPlaylist(w http.ResponseWriter, r *http.Request, ps
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if videoName == "live" {
-		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	}
 
 	http.ServeFile(w, r, playlistPath)
@@ -79,6 +104,21 @@ func serveFile(w http.ResponseWriter, filePath string) error {
 	// Serve file
 	_, err = io.Copy(w, src)
 	return err
+}
+
+func redirectPage(w http.ResponseWriter, r *http.Request, url string) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	http.Redirect(w, r, url, 301)
+}
+
+func fileExists(filePath string) bool {
+	f, err := assets.Open(filePath)
+	if f != nil {
+		f.Close()
+	}
+	return err == nil || !os.IsNotExist(err)
 }
 
 func checkError(err error) {

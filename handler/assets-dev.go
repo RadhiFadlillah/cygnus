@@ -7,3 +7,7 @@ import (
 )
 
 var assets = http.Dir("view")
+
+func init() {
+	developmentMode = true
+}
