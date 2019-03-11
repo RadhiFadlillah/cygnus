@@ -23,12 +23,12 @@
 </head>
 
 <body>
-    <div class="page" id="home">
+    <div class="page" id="app">
         <div id="logo">
             <img src="/res/logo.svg">
         </div>
         <div class="page__sidebar">
-            <a href="/" title="Live stream">
+            <a href="/" class="active" title="Live stream">
                 <i class="fas fa-fw fa-video"></i>
             </a>
             <a href="#" title="Storage">
@@ -41,19 +41,18 @@
         <h1 class="page__header">
             Cashier #1
         </h1>
-        <div class="page__content">
-            <video id="video-viewer" class="cygnus-video video-js" controls preload="auto">
-                <source src="/playlist/live" type="application/vnd.apple.mpegurl">
-                <p class="vjs-no-js">
-                    To view this video please enable JavaScript, and consider upgrading to a web browser that
-                    <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
-                </p>
-            </video>
-        </div>
+        <component is="live-page"></component>
     </div>
 
-    <script>
-        var player = videojs("video-viewer", { autoplay: true });
+    <script type="module">
+        // var player = videojs("video-viewer", { autoplay: true });
+        import livePage from './js/page/live.js';
+        var app = new Vue({
+            el: '#app',
+            components: {
+                livePage
+            }
+        })
     </script>
 </body>
 

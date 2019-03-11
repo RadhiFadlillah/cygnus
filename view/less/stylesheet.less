@@ -79,8 +79,13 @@ body {
             font-size: 1em;
             color: var(--colorSidebar);
 
+            &.active {
+                cursor: default;
+            }
+
             &:hover,
-            &:focus {
+            &:focus,
+            &.active {
                 color: var(--mainLight);
                 background-color: var(--sidebarHoverBg);
             }
@@ -96,20 +101,13 @@ body {
         font-weight: 600;
         padding: 0 16px;
     }
-
-    .page__content {
-        display: block;
-        overflow-y: auto;
-    }
 }
 
-#home {
-    .page__content {
-        padding: 16px;
+#live-page {
+    padding: 16px;
 
-        #video-viewer {
-            width: 100%;
-            height: 100%;
-        }
+    #video-viewer {
+        width: 100%;
+        height: 100%;
     }
 }
