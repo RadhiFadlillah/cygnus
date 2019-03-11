@@ -75,6 +75,12 @@ func serveWebView(chError chan error) {
 	router.GET("/playlist/:name", hdl.ServeHlsPlaylist)
 	router.GET("/stream/:name/:index", hdl.ServeHlsStream)
 
+	// Panic handler
+	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {
+		logrus.Errorln(fmt.Sprint(arg))
+		http.Error(w, fmt.Sprint(arg), 500)
+	}
+
 	go func() {
 		logrus.Println("web server running in port :8080")
 		err := http.ListenAndServe(":8080", router)
