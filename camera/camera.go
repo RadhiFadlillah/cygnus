@@ -235,8 +235,6 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 		"-codec", "copy",
 		"-bsf", "h264_mp4toannexb",
 		"-map", "0",
-		"-hls_time", "1",
-		"-hls_list_size", "30",
 		"-hls_base_url", "/stream/live/",
 		"-hls_segment_filename", segmentPath,
 		"-hls_segment_type", "mpegts",
