@@ -58,6 +58,7 @@ func startCamera(chError chan error) {
 
 func serveWebView(chError chan error) {
 	hdl := handler.WebHandler{
+		StorageDir:     storageDir,
 		HlsSegmentsDir: segmentsDir,
 	}
 
@@ -72,8 +73,12 @@ func serveWebView(chError chan error) {
 
 	// Serve UI
 	router.GET("/", hdl.ServeIndexPage)
+	router.GET("/video/:name", hdl.ServeVideo)
 	router.GET("/playlist/:name", hdl.ServeHlsPlaylist)
 	router.GET("/stream/:name/:index", hdl.ServeHlsStream)
+
+	// Serve API
+	router.GET("/api/storage", hdl.GetStorageFiles)
 
 	// Panic handler
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {

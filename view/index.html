@@ -17,40 +17,38 @@
     <link href="/css/video-js.min.css" rel="stylesheet">
     <link href="/css/stylesheet.css" rel="stylesheet">
     <link href="/css/cygnus-video.css" rel="stylesheet">
+    <link href="/css/cygnus-dialog.css" rel="stylesheet">
 
     <script src="/js/video.min.js"></script>
     <script src="/js/vue.min.js"></script>
 </head>
 
 <body>
-    <div class="page" id="app">
-        <div id="logo">
-            <img src="/res/logo.svg">
-        </div>
-        <div class="page__sidebar">
-            <a href="/" class="active" title="Live stream">
+    <div class="app" id="app">
+        <div class="app-sidebar">
+            <a href="/" title="Live stream">
                 <i class="fas fa-fw fa-video"></i>
             </a>
-            <a href="#" title="Storage">
+            <a href="#" class="active" title="Storage">
                 <i class="fas fa-fw fa-hdd"></i>
             </a>
             <a href="#" title="Setting">
                 <i class="fas fa-fw fa-cog"></i>
             </a>
         </div>
-        <h1 class="page__header">
-            Cashier #1
-        </h1>
-        <component is="live-page"></component>
+        <component is="page-storage"></component>
     </div>
 
     <script type="module">
         // var player = videojs("video-viewer", { autoplay: true });
-        import livePage from './js/page/live.js';
+        import pageLive from './js/page/live.js';
+        import pageStorage from './js/page/storage.js';
+
         var app = new Vue({
             el: '#app',
             components: {
-                livePage
+                pageLive,
+                pageStorage
             }
         })
     </script>

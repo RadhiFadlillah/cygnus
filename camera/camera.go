@@ -160,7 +160,7 @@ func (cam *RaspiCam) saveToStorage(input io.Reader) {
 	}
 
 	// Prepare ffmpeg for saving video's segments
-	outputPath := fp.Join(cam.StorageDir, "%Y-%m-%d-%H%M%S.mp4")
+	outputPath := fp.Join(cam.StorageDir, "%Y-%m-%d-%H:%M:%S.mp4")
 	cmd := exec.Command("ffmpeg", "-y",
 		"-loglevel", "fatal",
 		"-framerate", "30",

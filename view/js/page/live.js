@@ -1,6 +1,9 @@
 var template = `
-<div id="live-page">
-    <video id="video-viewer" class="cygnus-video video-js" controls preload="auto">
+<div id="page-live">
+    <h1 class="page-header">
+        Cashier #1
+    </h1>
+    <video id="live-viewer" class="cygnus-video video-js" controls preload="auto">
         <source src="/playlist/live" type="application/vnd.apple.mpegurl">
         <p class="vjs-no-js">
             To view this video please enable JavaScript, and consider upgrading to a web browser that
@@ -12,6 +15,6 @@ var template = `
 export default {
     template: template,
     mounted() {
-        videojs("video-viewer", { autoplay: true });
+        videojs("live-viewer", { autoplay: true });
     }
 }

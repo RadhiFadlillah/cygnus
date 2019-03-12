@@ -6,74 +6,15 @@ import (
 	"mime"
 	"net/http"
 	"os"
-	"path"
 	fp "path/filepath"
-	"strings"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 var developmentMode = false
 
 // WebHandler is handler for serving the web interface.
 type WebHandler struct {
+	StorageDir     string
 	HlsSegmentsDir string
-}
-
-// ServeFile is handler for general file request
-func (h *WebHandler) ServeFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	err := serveFile(w, r.URL.Path)
-	checkError(err)
-}
-
-// ServeJsFile is handler for GET /js/
-func (h *WebHandler) ServeJsFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	filePath := r.URL.Path
-	fileName := path.Base(filePath)
-	fileDir := path.Dir(filePath)
-
-	if developmentMode && fp.Ext(fileName) == ".js" && strings.HasSuffix(fileName, ".min.js") {
-		fileName = strings.TrimSuffix(fileName, ".min.js") + ".js"
-		filePath = path.Join(fileDir, fileName)
-		if fileExists(filePath) {
-			redirectPage(w, r, filePath)
-		}
-
-		return
-	}
-
-	err := serveFile(w, r.URL.Path)
-	checkError(err)
-}
-
-// ServeIndexPage is handler for GET /
-func (h *WebHandler) ServeIndexPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	err := serveFile(w, "index.html")
-	checkError(err)
-}
-
-// ServeHlsPlaylist is handler for GET /playlist/:name which serve the HLS playlist for a video
-func (h *WebHandler) ServeHlsPlaylist(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	videoName := ps.ByName("name")
-	playlistPath := fp.Join(h.HlsSegmentsDir, videoName, "playlist.m3u8")
-
-	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if videoName == "live" {
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	}
-
-	http.ServeFile(w, r, playlistPath)
-}
-
-// ServeHlsStream is handler for GET /stream/:name/:index which serve the HLS segment for a video
-func (h *WebHandler) ServeHlsStream(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	videoName := ps.ByName("name")
-	segmentIndex := ps.ByName("index")
-	segmentPath := fp.Join(h.HlsSegmentsDir, videoName, segmentIndex)
-
-	w.Header().Set("Content-Type", "video/MP2T")
-	http.ServeFile(w, r, segmentPath)
 }
 
 func serveFile(w http.ResponseWriter, filePath string) error {
