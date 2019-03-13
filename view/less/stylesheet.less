@@ -130,11 +130,14 @@ body {
     display: flex;
     flex-flow: column nowrap;
 
-    #live-viewer {
+    .video-container {
         flex: 1 0;
-        width: auto;
-        height: auto;
         margin: 16px;
+
+        #live-viewer {
+            width: 100%;
+            height: 100%;
+        }
     }
 }
 
