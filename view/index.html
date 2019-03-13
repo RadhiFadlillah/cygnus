@@ -26,21 +26,16 @@
 <body>
     <div class="app" id="app">
         <div class="app-sidebar">
-            <a href="/" title="Live stream">
-                <i class="fas fa-fw fa-video"></i>
-            </a>
-            <a href="#" class="active" title="Storage">
-                <i class="fas fa-fw fa-hdd"></i>
-            </a>
-            <a href="#" title="Setting">
-                <i class="fas fa-fw fa-cog"></i>
+            <a v-for="item in sidebarItems" :title="item.title" :class="{active: activePage === item.page}" @click="activePage = item.page">
+                <i class="fas fa-fw" :class="item.icon"></i>
             </a>
         </div>
-        <component is="page-storage"></component>
+        <keep-alive>
+            <component :is="activePage"></component>
+        </keep-alive>
     </div>
 
     <script type="module">
-        // var player = videojs("video-viewer", { autoplay: true });
         import pageLive from './js/page/live.js';
         import pageStorage from './js/page/storage.js';
 
@@ -49,6 +44,18 @@
             components: {
                 pageLive,
                 pageStorage
+            },
+            data: {
+                activePage: "page-live",
+                sidebarItems: [{
+                    title: "Live stream",
+                    icon: "fa-video",
+                    page: "page-live",
+                },{
+                    title: "Storage",
+                    icon: "fa-hdd",
+                    page: "page-storage",
+                }]
             }
         })
     </script>
