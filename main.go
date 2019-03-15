@@ -4,29 +4,40 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	fp "path/filepath"
 
 	"github.com/RadhiFadlillah/cygnus/camera"
 	"github.com/RadhiFadlillah/cygnus/handler"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (
+	dbPath       = "cygnus.db"
 	storageDir   = "temp/save"
 	segmentsDir  = "temp/segments"
 	playlistPath = "temp/playlist.m3u8"
 )
 
 func main() {
+	// Open database
+	db, err := bolt.Open(dbPath, os.ModePerm, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer db.Close()
+
 	// Prepare channel
 	chError := make(chan error)
 	defer close(chError)
 
-	// Start camera and watcher
+	// Start camera and server
 	startCamera(chError)
-	serveWebView(chError)
+	serveWebView(db, chError)
 
 	// Watch channel until error received
 	select {
@@ -56,8 +67,9 @@ func startCamera(chError chan error) {
 	}()
 }
 
-func serveWebView(chError chan error) {
+func serveWebView(db *bolt.DB, chError chan error) {
 	hdl := handler.WebHandler{
+		DB:             db,
 		StorageDir:     storageDir,
 		HlsSegmentsDir: segmentsDir,
 	}
@@ -79,10 +91,12 @@ func serveWebView(chError chan error) {
 
 	// Serve API
 	router.GET("/api/storage", hdl.GetStorageFiles)
+	router.GET("/api/user", hdl.GetUsers)
+	router.POST("/api/user", hdl.InsertUser)
+	router.DELETE("/api/user/:username", hdl.DeleteUser)
 
 	// Panic handler
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {
-		logrus.Errorln(fmt.Sprint(arg))
 		http.Error(w, fmt.Sprint(arg), 500)
 	}
 

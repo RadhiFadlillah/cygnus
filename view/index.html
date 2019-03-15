@@ -38,12 +38,14 @@
     <script type="module">
         import pageLive from './js/page/live.js';
         import pageStorage from './js/page/storage.js';
+        import pageSetting from './js/page/setting.js';
 
         var app = new Vue({
             el: '#app',
             components: {
                 pageLive,
-                pageStorage
+                pageStorage,
+                pageSetting
             },
             data: {
                 activePage: "page-live",
@@ -55,6 +57,10 @@
                     title: "Storage",
                     icon: "fa-hdd",
                     page: "page-storage",
+                },{
+                    title: "Setting",
+                    icon: "fa-cog",
+                    page: "page-setting",
                 }]
             }
         })

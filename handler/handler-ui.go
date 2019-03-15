@@ -67,6 +67,8 @@ func (h *WebHandler) ServeHlsStream(w http.ResponseWriter, r *http.Request, ps h
 	w.Header().Set("Content-Type", "video/MP2T")
 	if videoName == "live" {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	} else {
+		w.Header().Set("Cache-Control", "max-age=1200")
 	}
 
 	http.ServeFile(w, r, segmentPath)

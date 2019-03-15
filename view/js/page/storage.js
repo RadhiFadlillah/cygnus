@@ -27,13 +27,18 @@ var template = `
     </div>
     <p class="empty-message" v-if="!loading && listIsEmpty">No saved videos yet :(</p>
     <div class="loading-spinner" v-if="loading"><i class="fas fa-fw fa-spin fa-spinner"></i></div>
-    <cygnus-dialog v-if="errorMessage.length > 0" title="Error" :content="errorMessage" @accepted="errorMessage = ''"/>
+    <cygnus-dialog v-bind="dialog"/>
 </div>`;
 
 import cygnusDialog from "../component/dialog.js";
+import basePage from "./base.js";
 
 export default {
     template: template,
+    mixins: [basePage],
+    components: {
+        cygnusDialog
+    },
     data() {
         return {
             player: {},
@@ -41,11 +46,7 @@ export default {
             selectedDate: "",
             selectedFile: "",
             loading: false,
-            errorMessage: ""
         }
-    },
-    components: {
-        cygnusDialog
     },
     computed: {
         downloadURL() {
@@ -85,8 +86,8 @@ export default {
                     this.loading = false;
                 })
                 .catch(err => {
-                    this.errorMessage = err.message;
                     this.loading = false;
+                    this.showErrorDialog(err.message);
                 });
         }
     },

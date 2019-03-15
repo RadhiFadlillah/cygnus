@@ -4,5 +4,6 @@
 # Development files and dirs
 temp/
 
-# Executable file
+# Generated files
 cygnus
+cygnus.db

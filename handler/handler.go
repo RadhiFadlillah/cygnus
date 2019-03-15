@@ -7,12 +7,15 @@ import (
 	"net/http"
 	"os"
 	fp "path/filepath"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 var developmentMode = false
 
 // WebHandler is handler for serving the web interface.
 type WebHandler struct {
+	DB             *bolt.DB
 	StorageDir     string
 	HlsSegmentsDir string
 }

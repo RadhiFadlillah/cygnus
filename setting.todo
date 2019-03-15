@@ -1,0 +1,20 @@
+Settings
+
+[x] Users
+    - Add
+    - Delete
+
+[ ] IP address
+    - DHCP
+    - Static
+    - Use TSL
+
+[ ] WiFi
+
+[ ] Date and Time
+
+[ ] Dynamic DNS
+
+[ ] Camera
+    - Resolution
+    - Restart Camera
