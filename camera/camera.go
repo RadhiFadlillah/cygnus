@@ -3,6 +3,7 @@ package camera
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	fp "path/filepath"
@@ -25,7 +26,7 @@ type RaspiCam struct {
 	StorageDir    string
 
 	GenerateHlsSegments bool
-	HlsLiveSegmentsDir  string
+	HlsSegmentsDir      string
 
 	waitGroup   sync.WaitGroup
 	chError     chan error
@@ -36,6 +37,32 @@ type RaspiCam struct {
 // Start activates the camera, receive the stream and then process it
 func (cam *RaspiCam) Start() error {
 	logrus.Infoln("starting camera")
+
+	// Make sure needed directories exists
+	err := os.MkdirAll(cam.StorageDir, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to create save dir %s: %v", cam.StorageDir, err)
+	}
+
+	err = os.MkdirAll(cam.HlsSegmentsDir, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to create live segments dir %s: %v", cam.HlsSegmentsDir, err)
+	}
+
+	// If the HLS segments dir is not empty, remove its contents
+	dirItems, err := ioutil.ReadDir(cam.HlsSegmentsDir)
+	if err != nil {
+		return fmt.Errorf("failed to read live segments dir %s: %v", cam.HlsSegmentsDir, err)
+	}
+
+	for _, item := range dirItems {
+		itemPath := fp.Join(cam.HlsSegmentsDir, item.Name())
+		if item.IsDir() {
+			os.RemoveAll(itemPath)
+		} else {
+			os.Remove(itemPath)
+		}
+	}
 
 	// Create channels
 	cam.waitGroup = sync.WaitGroup{}
@@ -58,7 +85,6 @@ func (cam *RaspiCam) Start() error {
 	go cam.generateHlsSegments(inputHlsSegments)
 
 	// Block until error or stop request received
-	var err error
 	select {
 	case err = <-cam.chError:
 	case <-cam.chStop:
@@ -152,13 +178,6 @@ func (cam *RaspiCam) saveToStorage(input io.Reader) {
 	cam.waitGroup.Add(1)
 	defer cam.waitGroup.Done()
 
-	// Make sure directory exists
-	err := os.MkdirAll(cam.StorageDir, os.ModePerm)
-	if err != nil {
-		cam.chError <- fmt.Errorf("failed to create save dir %s: %v", cam.StorageDir, err)
-		return
-	}
-
 	// Prepare ffmpeg for saving video's segments
 	outputPath := fp.Join(cam.StorageDir, "%Y-%m-%d-%H:%M:%S.mp4")
 	cmd := exec.Command("ffmpeg", "-y",
@@ -175,7 +194,7 @@ func (cam *RaspiCam) saveToStorage(input io.Reader) {
 	cmd.Stdin = input
 
 	// Start ffmpeg
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		cam.chError <- err
 		return
@@ -205,29 +224,9 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 	cam.waitGroup.Add(1)
 	defer cam.waitGroup.Done()
 
-	// Make sure directory exists
-	err := os.MkdirAll(cam.HlsLiveSegmentsDir, os.ModePerm)
-	if err != nil {
-		cam.chError <- fmt.Errorf("failed to create live segments dir %s: %v", cam.HlsLiveSegmentsDir, err)
-		return
-	}
-
-	// If the directories are not empty, remove all *.ts file
-	err = fp.Walk(cam.HlsLiveSegmentsDir, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() && fp.Ext(info.Name()) == ".ts" {
-			return os.Remove(path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		cam.chError <- fmt.Errorf("failed to clear live segments dir %s: %v", cam.HlsLiveSegmentsDir, err)
-		return
-	}
-
 	// Prepare ffmpeg for generating HLS segments
-	playlistPath := fp.Join(cam.HlsLiveSegmentsDir, "playlist.m3u8")
-	segmentPath := fp.Join(cam.HlsLiveSegmentsDir, "%d.ts")
+	playlistPath := fp.Join(cam.HlsSegmentsDir, "playlist.m3u8")
+	segmentPath := fp.Join(cam.HlsSegmentsDir, "%d.ts")
 	cmd := exec.Command("ffmpeg", "-y",
 		"-loglevel", "fatal",
 		"-framerate", "30",
@@ -243,7 +242,7 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 	cmd.Stdin = input
 
 	// Start ffmpeg
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		cam.chError <- err
 		return

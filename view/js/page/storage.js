@@ -50,7 +50,7 @@ export default {
     },
     computed: {
         downloadURL() {
-            return `/video/${this.selectedFile}?download`;
+            return `/video/${this.selectedFile}`;
         },
         listIsEmpty() {
             return Object.getOwnPropertyNames(this.fileGroups).length <= 1;
@@ -67,7 +67,7 @@ export default {
         selectFile(date, time) {
             this.selectedFile = date + "-" + time;
             this.player.src({
-                src: `/video/${this.selectedFile}`,
+                src: `/video/${this.selectedFile}/playlist`,
                 type: "application/vnd.apple.mpegurl"
             });
         },

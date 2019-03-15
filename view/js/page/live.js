@@ -5,7 +5,7 @@ var template = `
     </h1>
     <div class="video-container">
         <video id="live-viewer" class="cygnus-video video-js" controls preload="auto">
-            <source src="/playlist/live" type="application/vnd.apple.mpegurl">
+            <source src="/live/playlist" type="application/vnd.apple.mpegurl">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>

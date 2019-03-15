@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	fp "path/filepath"
 
 	"github.com/RadhiFadlillah/cygnus/camera"
 	"github.com/RadhiFadlillah/cygnus/handler"
@@ -53,7 +52,7 @@ func startCamera(chError chan error) {
 		FlipView: true,
 
 		GenerateHlsSegments: true,
-		HlsLiveSegmentsDir:  fp.Join(segmentsDir, "live"),
+		HlsSegmentsDir:      segmentsDir,
 
 		SaveToStorage: true,
 		StorageDir:    storageDir,
@@ -85,9 +84,11 @@ func serveWebView(db *bolt.DB, chError chan error) {
 
 	// Serve UI
 	router.GET("/", hdl.ServeIndexPage)
-	router.GET("/video/:name", hdl.ServeVideo)
-	router.GET("/playlist/:name", hdl.ServeHlsPlaylist)
-	router.GET("/stream/:name/:index", hdl.ServeHlsStream)
+	router.GET("/live/playlist", hdl.ServeLivePlaylist)
+	router.GET("/live/stream/:index", hdl.ServeLiveSegment)
+	router.GET("/video/:name", hdl.ServeVideoFile)
+	router.GET("/video/:name/playlist", hdl.ServeVideoPlaylist)
+	router.GET("/video/:name/stream/:index", hdl.ServeVideoSegment)
 
 	// Serve API
 	router.GET("/api/storage", hdl.GetStorageFiles)
