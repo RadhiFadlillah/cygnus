@@ -18,7 +18,7 @@ var template = `
         </div>
     </div>
     <div class="video-container">
-        <video id="video-viewer" class="cygnus-video video-js" controls preload="auto">
+    <video id="video-viewer" class="cygnus-video video-js" controls preload="auto">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
@@ -68,8 +68,9 @@ export default {
             this.selectedFile = date + "-" + time;
             this.player.src({
                 src: `/video/${this.selectedFile}/playlist`,
-                type: "application/vnd.apple.mpegurl"
+                type: "application/x-mpegURL"
             });
+            this.player.play();
         },
         loadListFile() {
             this.fileGroups = {};

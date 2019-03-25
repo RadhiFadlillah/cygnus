@@ -18,7 +18,7 @@ import (
 func (h *WebHandler) ServeLivePlaylist(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	playlistPath := fp.Join(h.HlsSegmentsDir, "playlist.m3u8")
 
-	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	w.Header().Set("Content-Type", "application/x-mpegURL")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	http.ServeFile(w, r, playlistPath)
@@ -97,6 +97,8 @@ func (h *WebHandler) ServeVideoPlaylist(w http.ResponseWriter, r *http.Request, 
 	fmt.Fprintln(buffer, "#EXT-X-ENDLIST")
 
 	// Serve playlist
+	w.Header().Set("Content-Type", "application/x-mpegURL")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	io.Copy(w, buffer)
 }
 
@@ -113,7 +115,7 @@ func (h *WebHandler) ServeVideoSegment(w http.ResponseWriter, r *http.Request, p
 	index, err := strconv.Atoi(strIndex)
 	checkError(err)
 
-	startTime := float64(index - 1*30)
+	startTime := float64(index * 30)
 	if startTime < 0 {
 		startTime = 0
 	}
@@ -124,12 +126,16 @@ func (h *WebHandler) ServeVideoSegment(w http.ResponseWriter, r *http.Request, p
 		"-loglevel", "fatal",
 		"-ss", fmt.Sprintf("%f", startTime),
 		"-i", videoPath,
+		"-t", "30.0",
 		"-codec", "copy",
 		"-bsf", "h264_mp4toannexb",
 		"-map", "0",
-		"-f", "mpegts",
-		"-t", "30.0",
-		"pipe:1")
+		"-f", "segment",
+		"-segment_time", "30.0",
+		"-segment_format", "mpegts",
+		"-force_key_frames", "expr:gte(t,n_forced*30.000)",
+		"-initial_offset", fmt.Sprintf("%f", startTime),
+		"pipe:out%d.ts")
 	cmd.Stdout = buffer
 
 	err = cmd.Run()
