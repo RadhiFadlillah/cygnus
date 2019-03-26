@@ -13,7 +13,9 @@ var template = `
         <div v-for="(files, date) in fileGroups" class="file-group" :class="{expanded: selectedDate === date}">
             <a class="file-group-parent" @click="toggleFileGroup(date)">{{date}}</a>
             <div class="file-group-children">
-                <a v-for="time in files" @click="selectFile(date, time)">{{time}}</a>
+                <a v-for="time in files" 
+                    @click="selectFile(date, time)" 
+                    :class="{active: date+'-'+time === selectedFile}">{{time}}</a>
             </div>
         </div>
     </div>
@@ -65,12 +67,15 @@ export default {
             }
         },
         selectFile(date, time) {
-            this.selectedFile = date + "-" + time;
-            this.player.src({
-                src: `/video/${this.selectedFile}/playlist`,
-                type: "application/x-mpegURL"
-            });
-            this.player.play();
+            var selectedItem = `${date}-${time}`;
+            if (this.selectedFile !== selectedItem) {
+                this.selectedFile = selectedItem;
+                this.player.src({
+                    src: `/video/${this.selectedFile}/playlist`,
+                    type: "application/x-mpegURL"
+                });
+                this.player.play();
+            }
         },
         loadListFile() {
             this.fileGroups = {};
