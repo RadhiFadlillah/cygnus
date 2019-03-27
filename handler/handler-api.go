@@ -73,7 +73,7 @@ func (h *WebHandler) APILogin(w http.ResponseWriter, r *http.Request, ps httprou
 	err = h.DB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("user"))
 		if bucket == nil {
-			return fmt.Errorf("no user has been registered")
+			return fmt.Errorf("user is not exist")
 		}
 
 		hashedPassword = bucket.Get([]byte(request.Username))
