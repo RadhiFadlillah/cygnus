@@ -64,6 +64,9 @@
                         this.error = "Username must not empty";
                         return;
                     }
+
+                    // Remove old cookie
+                    document.cookie = "session-id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
                     
                     // Send request
                     this.loading = true;
