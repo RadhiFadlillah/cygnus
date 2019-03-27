@@ -43,6 +43,7 @@ export default {
 
             fetch("/api/user")
                 .then(response => {
+                    if (!response.ok) throw response;
                     return response.json();
                 })
                 .then(json => {
@@ -51,7 +52,9 @@ export default {
                 })
                 .catch(err => {
                     this.loading = false;
-                    this.showErrorDialog(err.message);
+                    err.text().then(msg => {
+                        this.showErrorDialog(`${msg} (${err.status})`);
+                    })
                 });
         },
         showDialogNewUser() {
@@ -99,6 +102,10 @@ export default {
                                 "Content-Type": "application/json",
                             },
                         })
+                        .then(response => {
+                            if (!response.ok) throw response;
+                            return response;
+                        })
                         .then(() => {
                             this.dialog.loading = false;
                             this.dialog.visible = false;
@@ -107,7 +114,9 @@ export default {
                         })
                         .catch(err => {
                             this.dialog.loading = false;
-                            this.showErrorDialog(err.message);
+                            err.text().then(msg => {
+                                this.showErrorDialog(`${msg} (${err.status})`);
+                            })
                         });
                 }
             });
@@ -121,6 +130,10 @@ export default {
                 mainClick: () => {
                     this.dialog.loading = true;
                     fetch(`/api/user/${username}`, { method: "delete" })
+                        .then(response => {
+                            if (!response.ok) throw response;
+                            return response;
+                        })
                         .then(() => {
                             this.dialog.loading = false;
                             this.dialog.visible = false;
@@ -128,7 +141,9 @@ export default {
                         })
                         .catch(err => {
                             this.dialog.loading = false;
-                            this.showErrorDialog(err.message);
+                            err.text().then(msg => {
+                                this.showErrorDialog(`${msg} (${err.status})`);
+                            })
                         });
                 }
             });

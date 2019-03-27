@@ -7,10 +7,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/RadhiFadlillah/cygnus/camera"
 	"github.com/RadhiFadlillah/cygnus/handler"
 	"github.com/julienschmidt/httprouter"
+	cch "github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
@@ -71,7 +73,11 @@ func serveWebView(db *bolt.DB, chError chan error) {
 		DB:             db,
 		StorageDir:     storageDir,
 		HlsSegmentsDir: segmentsDir,
+		UserCache:      cch.New(time.Hour, 10*time.Minute),
+		SessionCache:   cch.New(time.Hour, 10*time.Minute),
 	}
+
+	hdl.PrepareCache()
 
 	// Create router
 	router := httprouter.New()
@@ -84,6 +90,7 @@ func serveWebView(db *bolt.DB, chError chan error) {
 
 	// Serve UI
 	router.GET("/", hdl.ServeIndexPage)
+	router.GET("/login", hdl.ServeLoginPage)
 	router.GET("/live/playlist", hdl.ServeLivePlaylist)
 	router.GET("/live/stream/:index", hdl.ServeLiveSegment)
 	router.GET("/video/:name", hdl.ServeVideoFile)
@@ -91,10 +98,12 @@ func serveWebView(db *bolt.DB, chError chan error) {
 	router.GET("/video/:name/stream/:index", hdl.ServeVideoSegment)
 
 	// Serve API
-	router.GET("/api/storage", hdl.GetStorageFiles)
-	router.GET("/api/user", hdl.GetUsers)
-	router.POST("/api/user", hdl.InsertUser)
-	router.DELETE("/api/user/:username", hdl.DeleteUser)
+	router.POST("/api/login", hdl.APILogin)
+	router.POST("/api/logout", hdl.APILogout)
+	router.GET("/api/storage", hdl.APIGetStorageFiles)
+	router.GET("/api/user", hdl.APIGetUsers)
+	router.POST("/api/user", hdl.APIInsertUser)
+	router.DELETE("/api/user/:username", hdl.APIDeleteUser)
 
 	// Panic handler
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {

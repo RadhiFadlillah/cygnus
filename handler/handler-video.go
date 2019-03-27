@@ -16,6 +16,10 @@ import (
 // ServeLivePlaylist is handler for GET /live/playlist
 // which serve HLS playlist for live stream
 func (h *WebHandler) ServeLivePlaylist(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
 	playlistPath := fp.Join(h.HlsSegmentsDir, "playlist.m3u8")
 
 	w.Header().Set("Content-Type", "application/x-mpegURL")
@@ -27,6 +31,10 @@ func (h *WebHandler) ServeLivePlaylist(w http.ResponseWriter, r *http.Request, p
 // ServeLiveSegment is handler for GET /live/stream/:index
 // which serve the HLS segment for live stream
 func (h *WebHandler) ServeLiveSegment(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
 	segmentIndex := ps.ByName("index")
 	segmentPath := fp.Join(h.HlsSegmentsDir, segmentIndex)
 
@@ -38,6 +46,10 @@ func (h *WebHandler) ServeLiveSegment(w http.ResponseWriter, r *http.Request, ps
 // ServeVideoFile is handler for GET /video/:name.
 // It serves the video file as it without any modifications.
 func (h *WebHandler) ServeVideoFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
 	videoName := ps.ByName("name")
 	videoPath := fp.Join(h.StorageDir, videoName+".mp4")
 
@@ -49,6 +61,10 @@ func (h *WebHandler) ServeVideoFile(w http.ResponseWriter, r *http.Request, ps h
 // ServeVideoPlaylist is handler for GET /video/:name/playlist
 // which serve the HLS playlist for specified video
 func (h *WebHandler) ServeVideoPlaylist(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
 	// Get path to video file
 	videoName := ps.ByName("name")
 	videoPath := fp.Join(h.StorageDir, videoName+".mp4")
@@ -105,6 +121,10 @@ func (h *WebHandler) ServeVideoPlaylist(w http.ResponseWriter, r *http.Request, 
 // ServeVideoSegment is handler for GET /video/:name/stream/:index
 // which serve the HLS segment for specified video
 func (h *WebHandler) ServeVideoSegment(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Make sure session still valid
+	err := h.validateSession(r)
+	checkError(err)
+
 	// Get path to video file
 	videoName := ps.ByName("name")
 	videoPath := fp.Join(h.StorageDir, videoName+".mp4")

@@ -24,8 +24,8 @@
 </head>
 
 <body>
-    <div class="app" id="app">
-        <div class="app-sidebar">
+    <div class="home" id="app">
+        <div class="home-sidebar">
             <a v-for="item in sidebarItems" :title="item.title" :class="{active: activePage === item.page}" @click="activePage = item.page">
                 <i class="fas fa-fw" :class="item.icon"></i>
             </a>

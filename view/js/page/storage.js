@@ -85,6 +85,7 @@ export default {
 
             fetch("/api/storage")
                 .then(response => {
+                    if (!response.ok) throw response;
                     return response.json();
                 })
                 .then(json => {
@@ -93,7 +94,9 @@ export default {
                 })
                 .catch(err => {
                     this.loading = false;
-                    this.showErrorDialog(err.message);
+                    err.text().then(msg => {
+                        this.showErrorDialog(`${msg} (${err.status})`);
+                    })
                 });
         }
     },

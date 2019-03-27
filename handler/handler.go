@@ -8,6 +8,7 @@ import (
 	"os"
 	fp "path/filepath"
 
+	cch "github.com/patrickmn/go-cache"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -16,8 +17,50 @@ var developmentMode = false
 // WebHandler is handler for serving the web interface.
 type WebHandler struct {
 	DB             *bolt.DB
+	UserCache      *cch.Cache
+	SessionCache   *cch.Cache
 	StorageDir     string
 	HlsSegmentsDir string
+}
+
+// PrepareCache prepares cache for future use
+func (h *WebHandler) PrepareCache() {
+	h.SessionCache.OnEvicted(func(key string, val interface{}) {
+		username := val.(string)
+		arr, found := h.UserCache.Get(username)
+		if !found {
+			return
+		}
+
+		sessionIDs := arr.([]string)
+		for i := 0; i < len(sessionIDs); i++ {
+			if sessionIDs[i] == key {
+				sessionIDs = append(sessionIDs[:i], sessionIDs[i+1:]...)
+				break
+			}
+		}
+
+		h.UserCache.Set(username, sessionIDs, -1)
+	})
+}
+
+func (h *WebHandler) validateSession(r *http.Request) error {
+	// Get session-id from cookie
+	sessionID, err := r.Cookie("session-id")
+	if err != nil {
+		fmt.Println(err)
+		if err == http.ErrNoCookie {
+			return fmt.Errorf("session is not exist")
+		}
+		return err
+	}
+
+	// Make sure session is not expired yet
+	if _, found := h.SessionCache.Get(sessionID.Value); !found {
+		return fmt.Errorf("session has been expired")
+	}
+
+	return nil
 }
 
 func serveFile(w http.ResponseWriter, filePath string) error {
