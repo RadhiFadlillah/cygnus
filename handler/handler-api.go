@@ -216,5 +216,16 @@ func (h *WebHandler) APIDeleteUser(w http.ResponseWriter, r *http.Request, ps ht
 		return nil
 	})
 
+	// Delete user's sessions
+	userSessions := []string{}
+	if val, found := h.UserCache.Get(username); found {
+		userSessions = val.([]string)
+		for _, session := range userSessions {
+			h.SessionCache.Delete(session)
+		}
+
+		h.UserCache.Delete(username)
+	}
+
 	fmt.Fprint(w, 1)
 }
