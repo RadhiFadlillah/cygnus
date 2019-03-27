@@ -48,7 +48,6 @@ func (h *WebHandler) validateSession(r *http.Request) error {
 	// Get session-id from cookie
 	sessionID, err := r.Cookie("session-id")
 	if err != nil {
-		fmt.Println(err)
 		if err == http.ErrNoCookie {
 			return fmt.Errorf("session is not exist")
 		}
@@ -63,7 +62,7 @@ func (h *WebHandler) validateSession(r *http.Request) error {
 	return nil
 }
 
-func serveFile(w http.ResponseWriter, filePath string) error {
+func serveFile(w http.ResponseWriter, filePath string, cache bool) error {
 	// Open file
 	src, err := assets.Open(filePath)
 	if err != nil {

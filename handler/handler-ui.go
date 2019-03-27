@@ -11,7 +11,7 @@ import (
 
 // ServeFile is handler for general file request
 func (h *WebHandler) ServeFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	err := serveFile(w, r.URL.Path)
+	err := serveFile(w, r.URL.Path, true)
 	checkError(err)
 }
 
@@ -31,7 +31,7 @@ func (h *WebHandler) ServeJsFile(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	err := serveFile(w, r.URL.Path)
+	err := serveFile(w, r.URL.Path, true)
 	checkError(err)
 }
 
@@ -44,7 +44,7 @@ func (h *WebHandler) ServeIndexPage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	err = serveFile(w, "index.html")
+	err = serveFile(w, "index.html", false)
 	checkError(err)
 }
 
@@ -57,6 +57,6 @@ func (h *WebHandler) ServeLoginPage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	err = serveFile(w, "login.html")
+	err = serveFile(w, "login.html", false)
 	checkError(err)
 }
