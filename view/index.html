@@ -29,23 +29,32 @@
             <a v-for="item in sidebarItems" :title="item.title" :class="{active: activePage === item.page}" @click="activePage = item.page">
                 <i class="fas fa-fw" :class="item.icon"></i>
             </a>
+            <div class="spacer"></div>
+            <a title="Logout" @click="logout">
+                <i class="fas fa-fw fa-sign-out-alt"></i>
+            </a>
         </div>
         <keep-alive>
             <component :is="activePage"></component>
         </keep-alive>
+        <cygnus-dialog v-bind="dialog" />
     </div>
 
     <script type="module">
         import pageLive from './js/page/live.js';
         import pageStorage from './js/page/storage.js';
         import pageSetting from './js/page/setting.js';
+        import basePage from "./js/page/base.js";
+        import cygnusDialog from "./js/component/dialog.js";
 
         var app = new Vue({
             el: '#app',
+            mixins: [basePage],
             components: {
                 pageLive,
                 pageStorage,
-                pageSetting
+                pageSetting,
+                cygnusDialog
             },
             data: {
                 activePage: "page-live",
@@ -62,6 +71,34 @@
                     icon: "fa-cog",
                     page: "page-setting",
                 }]
+            },
+            methods: {
+                logout() {
+                    this.showDialog({
+                        title: "Log Out",
+                        content: "Are you sure you want to log out ?",
+                        mainText: "Yes",
+                        secondText: "No",
+                        mainClick: () => {
+                            this.dialog.loading = true;
+                            fetch("/api/logout", { method: "post" })
+                                .then(response => {
+                                    if (!response.ok) throw response;
+                                    return response;
+                                })
+                                .then(() => {
+                                    document.cookie = "session-id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                                    location.href = "/login";
+                                })
+                                .catch(err => {
+                                    this.dialog.loading = false;
+                                    err.text().then(msg => {
+                                        this.showErrorDialog(`${msg} (${err.status})`);
+                                    })
+                                });
+                        }
+                    });
+                }
             }
         })
     </script>
