@@ -38,17 +38,6 @@ type RaspiCam struct {
 func (cam *RaspiCam) Start() error {
 	logrus.Infoln("starting camera")
 
-	// Make sure needed directories exists
-	err := os.MkdirAll(cam.StorageDir, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to create save dir %s: %v", cam.StorageDir, err)
-	}
-
-	err = os.MkdirAll(cam.HlsSegmentsDir, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to create live segments dir %s: %v", cam.HlsSegmentsDir, err)
-	}
-
 	// If the HLS segments dir is not empty, remove its contents
 	dirItems, err := ioutil.ReadDir(cam.HlsSegmentsDir)
 	if err != nil {

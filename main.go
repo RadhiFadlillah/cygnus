@@ -18,10 +18,9 @@ import (
 )
 
 var (
-	dbPath       = "cygnus.db"
-	storageDir   = "temp/save"
-	segmentsDir  = "temp/segments"
-	playlistPath = "temp/playlist.m3u8"
+	dbPath      = "cygnus.db"
+	storageDir  = "temp/storage"
+	segmentsDir = "temp/segments"
 )
 
 func main() {
@@ -31,6 +30,17 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer db.Close()
+
+	// Make sure required directories exists
+	err = os.MkdirAll(storageDir, os.ModePerm)
+	if err != nil {
+		logrus.Fatalln("failed to create storage dir:", err)
+	}
+
+	err = os.MkdirAll(segmentsDir, os.ModePerm)
+	if err != nil {
+		logrus.Fatalln("failed to create live segments dir:", err)
+	}
 
 	// Prepare channel
 	chError := make(chan error)
