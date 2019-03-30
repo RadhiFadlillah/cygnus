@@ -139,6 +139,7 @@ func (cam *RaspiCam) startRaspivid(output io.Writer) {
 	cmd.Stdout = output
 	err := cmd.Start()
 	if err != nil {
+		logrus.Errorln("problem in raspivid")
 		cam.chError <- err
 		return
 	}
@@ -183,9 +184,10 @@ func (cam *RaspiCam) saveToStorage(input io.Reader) {
 	cmd.Stdin = input
 
 	// Start ffmpeg
-	err := cmd.Start()
+	btOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		cam.chError <- err
+		logrus.Errorln("problem in saving to storage")
+		cam.chError <- fmt.Errorf("fail to save video: %s", btOutput)
 		return
 	}
 
@@ -223,7 +225,7 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 		"-codec", "copy",
 		"-bsf", "h264_mp4toannexb",
 		"-map", "0",
-		"-hls_base_url", "/stream/live/",
+		"-hls_base_url", "/live/stream/",
 		"-hls_segment_filename", segmentPath,
 		"-hls_segment_type", "mpegts",
 		"-hls_flags", "delete_segments+temp_file",
@@ -231,9 +233,10 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 	cmd.Stdin = input
 
 	// Start ffmpeg
-	err := cmd.Start()
+	btOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		cam.chError <- err
+		logrus.Errorln("problem in generating segments")
+		cam.chError <- fmt.Errorf("fail to generate segments: %s", btOutput)
 		return
 	}
 
