@@ -19,6 +19,12 @@ import (
 )
 
 var (
+	portNumber = 8080
+
+	camWidth  = 800
+	camHeight = 600
+	camFlip   = false
+
 	dbPath      = "cygnus.db"
 	storageDir  = "temp/storage"
 	segmentsDir = "temp/segments"
@@ -65,9 +71,9 @@ func main() {
 
 func startCamera(chError chan error) {
 	cam := camera.RaspiCam{
-		Width:    800,
-		Height:   600,
-		FlipView: true,
+		Width:    camWidth,
+		Height:   camHeight,
+		FlipView: camFlip,
 
 		GenerateHlsSegments: true,
 		HlsSegmentsDir:      segmentsDir,
@@ -127,8 +133,9 @@ func serveWebView(db *bolt.DB, chError chan error) {
 	}
 
 	go func() {
-		logrus.Println("web server running in port :8080")
-		err := http.ListenAndServe(":8080", router)
+		strPortNumber := fmt.Sprintf(":%d", portNumber)
+		logrus.Println("web server running in port " + strPortNumber)
+		err := http.ListenAndServe(strPortNumber, router)
 		if err != nil {
 			chError <- fmt.Errorf("web server error: %v", err)
 		}
