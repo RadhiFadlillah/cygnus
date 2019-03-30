@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	fp "path/filepath"
 	"time"
 
 	"github.com/RadhiFadlillah/cygnus/camera"
@@ -24,14 +25,12 @@ var (
 )
 
 func main() {
-	// Open database
-	db, err := bolt.Open(dbPath, os.ModePerm, nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer db.Close()
-
 	// Make sure required directories exists
+	err := os.MkdirAll(fp.Dir(dbPath), os.ModePerm)
+	if err != nil {
+		logrus.Fatalln("failed to create database dir:", err)
+	}
+
 	err = os.MkdirAll(storageDir, os.ModePerm)
 	if err != nil {
 		logrus.Fatalln("failed to create storage dir:", err)
@@ -41,6 +40,13 @@ func main() {
 	if err != nil {
 		logrus.Fatalln("failed to create live segments dir:", err)
 	}
+
+	// Open database
+	db, err := bolt.Open(dbPath, os.ModePerm, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer db.Close()
 
 	// Prepare channel
 	chError := make(chan error)

@@ -9,7 +9,7 @@ import (
 
 func init() {
 	homeDir := os.Getenv("HOME")
-	cygnusDir := fp.Join(homeDir, "cygnus")
+	cygnusDir := fp.Join(homeDir, "cygnus-data")
 
 	if envDbPath, found := os.LookupEnv("ENV-CYGNUS-DB"); found {
 		dbPath = envDbPath
