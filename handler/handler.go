@@ -78,7 +78,7 @@ func serveFile(w http.ResponseWriter, filePath string, cache bool) error {
 
 	etag := fmt.Sprintf(`W/"%x-%x"`, info.ModTime().Unix(), info.Size())
 	w.Header().Set("ETag", etag)
-	w.Header().Set("Cache-Control", "max-age=604800")
+	w.Header().Set("Cache-Control", "max-age=86400")
 
 	// Set content type
 	ext := fp.Ext(filePath)
