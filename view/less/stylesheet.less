@@ -49,7 +49,6 @@ body {
     overflow: auto;
     display: flex;
     align-items: center;
-    justify-content: center;
     flex-flow: column nowrap;
     background-color: var(--bg);
 
@@ -60,6 +59,7 @@ body {
         background-color: var(--contentBg);
         border: 1px solid var(--border);
         padding: 16px;
+        margin-top: auto;
         margin-bottom: 16px;
         text-align: center;
         color: var(--errorColor);
@@ -68,11 +68,16 @@ body {
     #login-box {
         width: 100%;
         max-width: 400px;
+        margin-bottom: auto;
         background-color: var(--contentBg);
         display: flex;
         flex-flow: column nowrap;
         border: 1px solid var(--border);
         flex-shrink: 0;
+
+        &:first-child {
+            margin-top: auto;
+        }
 
         #logo-area {
             display: flex;
@@ -92,6 +97,7 @@ body {
                 font-weight: 500;
                 margin-top: 4px;
                 color: var(--contentBg);
+                text-align: center;
             }
         }
 
@@ -114,8 +120,8 @@ body {
                 padding: 8px;
                 background-color: var(--contentBg);
                 border: 1px solid var(--border);
-                flex: 1 0;
                 font-size: 0.9em;
+                min-width: 0;
             }
 
             .checkbox-field {
@@ -221,7 +227,10 @@ body {
             line-height: 24px;
             color: var(--colorLink);
             text-align: center;
-            margin-left: 8px;
+
+            &:not(:last-child) {
+                margin-right: 8px;
+            }
 
             &:hover {
                 color: var(--mainDark);
@@ -229,12 +238,70 @@ body {
         }
     }
 
-    .loading-spinner {
-        color: var(--colorLink);
-        font-size: 4em;
-        text-align: center;
-        width: 80px;
-        line-height: 80px;
+    .loading-overlay {
+        display: flex;
+        flex-flow: column nowrap;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 10001;
+        background-color: rgba(0, 0, 0, 0.6);
+
+        i {
+            color: var(--colorSidebar);
+            font-size: 4em;
+            text-align: center;
+            width: 80px;
+            line-height: 80px;
+            position: absolute;
+        }
+    }
+
+    @media (max-width: 600px) {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 60px minmax(0, 1fr);
+
+        .home-sidebar {
+            justify-content: center;
+            flex-flow: row nowrap;
+            overflow-x: auto;
+
+            .spacer {
+                display: none;
+            }
+        }
+
+        h1.page-header {
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2em;
+            padding: 8px;
+        }
+
+        div.page-header {
+            padding: 8px;
+            flex-flow: row nowrap;
+
+            p {
+                flex: auto;
+                text-align: center;
+                font-size: 1em;
+                line-height: 1.2em;
+                width: 100%;
+                padding: 0;
+            }
+
+            a {
+                display: block;
+                width: 24px;
+                line-height: 100%;
+            }
+        }
     }
 }
 
@@ -262,6 +329,10 @@ body {
     .page-header {
         grid-row: 1 / span 1;
         grid-column: 1 / span 2;
+
+        a:first-child {
+            display: none;
+        }
     }
 
     .file-list {
@@ -332,6 +403,8 @@ body {
     .video-container {
         display: flex;
         flex-flow: column nowrap;
+        background-color: var(--bg);
+        z-index: 1;
 
         #video-viewer {
             flex: 1 0;
@@ -352,14 +425,27 @@ body {
         margin-top: calc(30px-12px);
         margin-left: -75px;
         color: var(--colorLink);
+        z-index: 1;
     }
 
-    .loading-spinner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-top: calc(30px-40px);
-        margin-left: -40px;
+    @media (max-width: 600px) {
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
+
+        .page-header {
+            grid-column: 1 / span 1;
+
+            a:first-child {
+                display: block;
+            }
+        }
+
+        .file-list,
+        .video-container {
+            width: 100%;
+            grid-row: 2 / span 1;
+            grid-column: 1 / span 1;
+        }
     }
 }
 
@@ -368,14 +454,6 @@ body {
     max-height: 100%;
     display: flex;
     flex-flow: column nowrap;
-
-    .loading-spinner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-top: calc(30px-40px);
-        margin-left: -40px;
-    }
 
     .setting-container {
         padding: 8px;
@@ -387,10 +465,14 @@ body {
         details.setting-group {
             margin: 8px;
             display: block;
-            max-width: 300px;
+            max-width: 350px;
             color: var(--color);
             background-color: var(--contentBg);
             border: 1px solid var(--border);
+
+            @media (max-width: 600px) {
+                max-width: 100%;
+            }
 
             summary {
                 list-style: none;

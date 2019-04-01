@@ -23,8 +23,8 @@ type WebHandler struct {
 	HlsSegmentsDir string
 }
 
-// PrepareCache prepares cache for future use
-func (h *WebHandler) PrepareCache() {
+// PrepareLoginCache prepares cache for future use
+func (h *WebHandler) PrepareLoginCache() {
 	h.SessionCache.OnEvicted(func(key string, val interface{}) {
 		username := val.(string)
 		arr, found := h.UserCache.Get(username)

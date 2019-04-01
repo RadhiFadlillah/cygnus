@@ -99,7 +99,7 @@ func serveWebView(db *bolt.DB, chError chan error) {
 		SessionCache:   cch.New(time.Hour, 10*time.Minute),
 	}
 
-	hdl.PrepareCache()
+	hdl.PrepareLoginCache()
 
 	// Create router
 	router := httprouter.New()

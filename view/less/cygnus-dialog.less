@@ -23,10 +23,11 @@
     .cygnus-dialog {
         display: flex;
         flex-flow: column nowrap;
-        min-width: 380px;
+        width: 100%;
+        max-width: 400px;
         min-height: 0;
         max-height: 100%;
-        overflow: hidden;
+        overflow: auto;
         background-color: var(--contentBg);
         font-size: 16px;
 
@@ -62,6 +63,7 @@
                 padding: 8px;
                 font-size: 1em;
                 border: 1px solid var(--border);
+                min-width: 0;
             }
         }
 

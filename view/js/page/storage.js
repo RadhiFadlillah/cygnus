@@ -1,7 +1,10 @@
 var template = `
 <div id="page-storage">
     <div class="page-header">
-        <p>Storage {{selectedFile}}</p>
+        <a title="Back to list" v-if="selectedFile !== ''" @click="selectedFile = ''">
+            <i class="fas fa-fw fa-arrow-left"></i>
+        </a>
+        <p>{{headerTitle}}</p>
         <a title="Save video" v-if="selectedFile !== ''" :href="downloadURL" target="_blank" download>
             <i class="fas fa-fw fa-save"></i>
         </a>
@@ -9,7 +12,7 @@ var template = `
             <i class="fas fa-fw fa-sync-alt"></i>
         </a>
     </div>
-    <div class="file-list" v-if="!listIsEmpty">
+    <div class="file-list" v-if="!listIsEmpty" :style="{zIndex: listZIndex}">
         <div v-for="(files, date) in fileGroups" class="file-group" :class="{expanded: selectedDate === date}">
             <a class="file-group-parent" @click="toggleFileGroup(date)">{{date}}</a>
             <div class="file-group-children">
@@ -20,7 +23,7 @@ var template = `
         </div>
     </div>
     <div class="video-container">
-    <video id="video-viewer" class="cygnus-video video-js">
+        <video id="video-viewer" class="cygnus-video video-js">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
@@ -28,7 +31,7 @@ var template = `
         </video>
     </div>
     <p class="empty-message" v-if="!loading && listIsEmpty">No saved videos yet :(</p>
-    <div class="loading-spinner" v-if="loading"><i class="fas fa-fw fa-spin fa-spinner"></i></div>
+    <div class="loading-overlay" v-if="loading"><i class="fas fa-fw fa-spin fa-spinner"></i></div>
     <cygnus-dialog v-bind="dialog"/>
 </div>`;
 
@@ -43,7 +46,7 @@ export default {
     },
     data() {
         return {
-            player: {},
+            player: null,
             fileGroups: {},
             selectedDate: "",
             selectedFile: "",
@@ -51,11 +54,18 @@ export default {
         }
     },
     computed: {
+        headerTitle() {
+            if (this.selectedFile === "") return "Storage";
+            return this.selectedFile;
+        },
         downloadURL() {
             return `/video/${this.selectedFile}`;
         },
         listIsEmpty() {
             return Object.getOwnPropertyNames(this.fileGroups).length <= 1;
+        },
+        listZIndex() {
+            return this.selectedFile === "" ? 2 : 0;
         }
     },
     methods: {
@@ -67,15 +77,7 @@ export default {
             }
         },
         selectFile(date, time) {
-            var selectedItem = `${date}-${time}`;
-            if (this.selectedFile !== selectedItem) {
-                this.selectedFile = selectedItem;
-                this.player.src({
-                    src: `/video/${this.selectedFile}/playlist`,
-                    type: "application/x-mpegURL"
-                });
-                this.player.play();
-            }
+            this.selectedFile = `${date}-${time}`;
         },
         loadListFile() {
             this.fileGroups = {};
@@ -102,23 +104,30 @@ export default {
     },
     watch: {
         selectedFile(val) {
-            if (val === "") this.player.hide();
-            else this.player.show();
+            if (val === "") {
+                this.player.pause();
+                this.player.hide();
+            } else {
+                this.player.src({
+                    src: `/video/${val}/playlist`,
+                    type: "application/x-mpegURL"
+                });
+                this.player.show();
+                this.player.play();
+            }
         }
     },
     mounted() {
+        this.loadListFile();
         this.player = videojs("video-viewer", {
             controls: true,
             preload: "auto",
             autoplay: false,
             muted: true,
             html5: {
-                hls: {
-                    overrideNative: true
-                }
+                hls: { overrideNative: true }
             },
         });
         this.player.hide();
-        this.loadListFile();
     }
 }

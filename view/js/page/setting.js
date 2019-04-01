@@ -3,7 +3,7 @@ var template = `
     <h1 class="page-header">
         Settings
     </h1>
-    <div v-if="!loading" class="setting-container">
+    <div class="setting-container">
         <details open class="setting-group" id="setting-users">
             <summary>Users</summary>
             <ul>
@@ -18,7 +18,7 @@ var template = `
             </div>
         </details>
     </div>
-    <div class="loading-spinner" v-if="loading"><i class="fas fa-fw fa-spin fa-spinner"></i></div>
+    <div class="loading-overlay" v-if="loading"><i class="fas fa-fw fa-spin fa-spinner"></i></div>
     <cygnus-dialog v-bind="dialog"/>
 </div>`;
 
