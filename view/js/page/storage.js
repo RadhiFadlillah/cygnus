@@ -20,7 +20,7 @@ var template = `
         </div>
     </div>
     <div class="video-container">
-    <video id="video-viewer" class="cygnus-video video-js" controls preload="auto">
+    <video id="video-viewer" class="cygnus-video video-js">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
@@ -107,7 +107,17 @@ export default {
         }
     },
     mounted() {
-        this.player = videojs("video-viewer");
+        this.player = videojs("video-viewer", {
+            controls: true,
+            preload: "auto",
+            autoplay: false,
+            muted: true,
+            html5: {
+                hls: {
+                    overrideNative: true
+                }
+            },
+        });
         this.player.hide();
         this.loadListFile();
     }

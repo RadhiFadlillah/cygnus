@@ -4,7 +4,7 @@ var template = `
         Live Stream
     </h1>
     <div class="video-container">
-        <video id="live-viewer" class="cygnus-video video-js" controls preload="auto">
+        <video id="live-viewer" class="cygnus-video video-js">
             <source src="/live/playlist" type="application/x-mpegURL">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
@@ -17,6 +17,16 @@ var template = `
 export default {
     template: template,
     mounted() {
-        videojs("live-viewer", { autoplay: true });
+        videojs("live-viewer", {
+            controls: true,
+            preload: "auto",
+            autoplay: true,
+            muted: true,
+            html5: {
+                hls: {
+                    overrideNative: true
+                }
+            },
+        });
     }
 }
