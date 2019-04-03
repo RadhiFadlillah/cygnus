@@ -3,30 +3,25 @@ var template = `
     <h1 class="page-header">
         Live Stream
     </h1>
-    <div class="video-container">
-        <video id="live-viewer" class="cygnus-video video-js">
-            <source src="/live/playlist" type="application/x-mpegURL">
-            <p class="vjs-no-js">
-                To view this video please enable JavaScript, and consider upgrading to a web browser that
-                <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
-            </p>
-        </video>
-    </div>
+    <video id="live-viewer" ref="liveViewer" autoplay muted controls>
+    </video>
 </div>`;
 
 export default {
     template: template,
     mounted() {
-        videojs("live-viewer", {
-            controls: true,
-            preload: "auto",
-            autoplay: true,
-            muted: true,
-            html5: {
-                hls: {
-                    overrideNative: true
-                }
-            },
-        });
+        if (Hls.isSupported()) {
+            var hls = new Hls({
+                liveSyncDurationCount: 0,
+                liveMaxLatencyDurationCount: 10,
+                liveDurationInfinity: true
+            });
+
+            hls.loadSource("/live/playlist");
+            hls.attachMedia(this.$refs.liveViewer);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                this.$refs.liveViewer.play();
+            });
+        }
     }
 }

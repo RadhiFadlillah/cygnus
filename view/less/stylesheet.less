@@ -306,17 +306,17 @@ body {
 }
 
 #page-live {
-    display: flex;
-    flex-flow: column nowrap;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
 
-    .video-container {
-        flex: 1 0;
-        margin: 16px;
-
-        #live-viewer {
-            width: 100%;
-            height: 100%;
-        }
+    #live-viewer {
+        width: 100%;
+        height: 100%;
+        margin: auto;
+        background-color: black;
+        object-fit: scale-down;
+        border: 16px solid var(--bg);
     }
 }
 
@@ -400,18 +400,13 @@ body {
         }
     }
 
-    .video-container {
-        display: flex;
-        flex-flow: column nowrap;
-        background-color: var(--bg);
-        z-index: 1;
-
-        #video-viewer {
-            flex: 1 0;
-            width: auto;
-            height: auto;
-            margin: 16px;
-        }
+    #video-viewer {
+        width: 100%;
+        height: 100%;
+        margin: auto;
+        background-color: black;
+        object-fit: scale-down;
+        border: 16px solid var(--bg);
     }
 
     .empty-message {
@@ -441,7 +436,7 @@ body {
         }
 
         .file-list,
-        .video-container {
+        #video-viewer {
             width: 100%;
             grid-row: 2 / span 1;
             grid-column: 1 / span 1;
