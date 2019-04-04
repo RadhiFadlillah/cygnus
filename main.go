@@ -4,11 +4,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	fp "path/filepath"
 	"time"
+
+	"github.com/shirou/gopsutil/disk"
 
 	"github.com/RadhiFadlillah/cygnus/camera"
 	"github.com/RadhiFadlillah/cygnus/handler"
@@ -19,7 +22,8 @@ import (
 )
 
 var (
-	portNumber = 8080
+	portNumber     = 8080
+	maxStorageSize = uint64(1024)
 
 	camWidth  = 800
 	camHeight = 600
@@ -58,9 +62,10 @@ func main() {
 	chError := make(chan error)
 	defer close(chError)
 
-	// Start camera and server
-	startCamera(chError)
-	serveWebView(db, chError)
+	// Start camera, web server and storage cleaner
+	go startCamera(chError)
+	go serveWebView(db, chError)
+	go cleanStorage(chError)
 
 	// Watch channel until error received
 	select {
@@ -82,12 +87,10 @@ func startCamera(chError chan error) {
 		StorageDir:    storageDir,
 	}
 
-	go func() {
-		err := cam.Start()
-		if err != nil {
-			chError <- fmt.Errorf("camera error: %v", err)
-		}
-	}()
+	err := cam.Start()
+	if err != nil {
+		chError <- fmt.Errorf("camera error: %v", err)
+	}
 }
 
 func serveWebView(db *bolt.DB, chError chan error) {
@@ -132,12 +135,60 @@ func serveWebView(db *bolt.DB, chError chan error) {
 		http.Error(w, fmt.Sprint(arg), 500)
 	}
 
-	go func() {
-		strPortNumber := fmt.Sprintf(":%d", portNumber)
-		logrus.Println("web server running in port " + strPortNumber)
-		err := http.ListenAndServe(strPortNumber, router)
+	// Serve app
+	strPortNumber := fmt.Sprintf(":%d", portNumber)
+	logrus.Println("web server running in port " + strPortNumber)
+	err := http.ListenAndServe(strPortNumber, router)
+	if err != nil {
+		chError <- fmt.Errorf("web server error: %v", err)
+	}
+}
+
+// cleanStorage removes old video from storage when :
+// - there are too many vids, which combined size > maxStorageSize
+// - free space is less than 500MB
+//
+// Unlike startCamera and serveWebView, it's fine if removal failed.
+// So, if error happened, we just add warning log.
+func cleanStorage(chError chan error) {
+	logWarn := func(a ...interface{}) {
+		logrus.Warnln(a...)
+	}
+
+	for {
+		time.Sleep(15 * time.Minute)
+
+		// Get storage dir stat
+		stat, err := disk.Usage(storageDir)
 		if err != nil {
-			chError <- fmt.Errorf("web server error: %v", err)
+			logWarn("clean storage error: get stat failed:", err)
+			continue
 		}
-	}()
+
+		// If usage is more than max size, or free storage is less than 500 MB,
+		// remove old recorded video.
+		if (maxStorageSize > 0 && stat.Used > maxStorageSize) || stat.Free < 500*1000^2 {
+			dirItems, err := ioutil.ReadDir(storageDir)
+			if err != nil {
+				logWarn("clean storage error: get items failed:", err)
+				continue
+			}
+
+			oldestVideo := ""
+			for _, item := range dirItems {
+				if !item.IsDir() && fp.Ext(item.Name()) == ".mp4" {
+					oldestVideo = item.Name()
+					break
+				}
+			}
+
+			err = os.Remove(fp.Join(storageDir, oldestVideo))
+			if err != nil {
+				logWarn("clean storage error: remove failed:", err)
+				continue
+			}
+
+			logrus.Println("removing old video:", oldestVideo)
+		}
+	}
 }

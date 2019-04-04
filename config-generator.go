@@ -17,6 +17,14 @@ func init() {
 		}
 	}
 
+	// Set max storage size
+	maxStorageSize = 0
+	if envMaxSize, found := os.LookupEnv("CYGNUS_STORAGE_SIZE"); found {
+		if intMaxSize, err := strconv.Atoi(envMaxSize); intMaxSize > 0 && err == nil {
+			maxStorageSize = uint64(intMaxSize)
+		}
+	}
+
 	// Set camera config
 	camWidth = 800
 	if envCamWidth, found := os.LookupEnv("CYGNUS_CAM_WIDTH"); found {
