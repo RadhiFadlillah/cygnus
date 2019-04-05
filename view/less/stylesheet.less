@@ -310,16 +310,12 @@ body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
 
-    #live-viewer {
-        width: 100%;
-        height: 100%;
-        margin: auto;
-        background-color: black;
-        object-fit: scale-down;
-        border: 16px solid var(--bg);
+    .video-container {
+        padding: 16px;
 
-        &:fullscreen {
-            border: 0
+        #live-viewer {
+            width: 100%;
+            height: 100%;
         }
     }
 }
@@ -404,16 +400,17 @@ body {
         }
     }
 
-    #video-viewer {
-        width: 100%;
-        height: 100%;
-        margin: auto;
-        background-color: black;
-        object-fit: scale-down;
-        border: 16px solid var(--bg);
+    .video-container {
+        display: flex;
+        flex-flow: column nowrap;
+        background-color: var(--bg);
+        padding: 16px;
+        z-index: 1;
 
-        &:fullscreen {
-            border: 0
+        #video-viewer {
+            flex: 1 0;
+            width: auto;
+            height: auto;
         }
     }
 
@@ -444,7 +441,7 @@ body {
         }
 
         .file-list,
-        #video-viewer {
+        .video-container {
             width: 100%;
             grid-row: 2 / span 1;
             grid-column: 1 / span 1;

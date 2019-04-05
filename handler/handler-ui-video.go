@@ -164,5 +164,6 @@ func (h *WebHandler) ServeVideoSegment(w http.ResponseWriter, r *http.Request, p
 	// Serve segment
 	w.Header().Set("Content-Type", "video/MP2T")
 	w.Header().Set("Cache-Control", "max-age=3600")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	io.Copy(w, buffer)
 }
