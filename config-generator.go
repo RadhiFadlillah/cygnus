@@ -45,19 +45,11 @@ func init() {
 	// Set data directory
 	homeDir := os.Getenv("HOME")
 	cygnusDir := fp.Join(homeDir, "cygnus-data")
+	if envDirPath, found := os.LookupEnv("CYGNUS_DIR"); found {
+		cygnusDir = fp.Clean(envDirPath)
+	}
 
 	dbPath = fp.Join(cygnusDir, "cygnus.db")
-	if envDbPath, found := os.LookupEnv("CYGNUS_DB"); found {
-		dbPath = envDbPath
-	}
-
 	storageDir = fp.Join(cygnusDir, "storage")
-	if envStorageDir, found := os.LookupEnv("CYGNUS_STORAGE"); found {
-		storageDir = envStorageDir
-	}
-
 	segmentsDir = fp.Join(cygnusDir, "segments")
-	if envSegmentsDir, found := os.LookupEnv("CYGNUS_SEGMENTS"); found {
-		segmentsDir = envSegmentsDir
-	}
 }
