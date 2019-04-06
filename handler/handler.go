@@ -70,15 +70,19 @@ func serveFile(w http.ResponseWriter, filePath string, cache bool) error {
 	}
 	defer src.Close()
 
-	// Cache this file
-	info, err := src.Stat()
-	if err != nil {
-		return err
-	}
+	// Cache this file if needed
+	if cache {
+		info, err := src.Stat()
+		if err != nil {
+			return err
+		}
 
-	etag := fmt.Sprintf(`W/"%x-%x"`, info.ModTime().Unix(), info.Size())
-	w.Header().Set("ETag", etag)
-	w.Header().Set("Cache-Control", "max-age=86400")
+		etag := fmt.Sprintf(`W/"%x-%x"`, info.ModTime().Unix(), info.Size())
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Cache-Control", "max-age=86400")
+	} else {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	}
 
 	// Set content type
 	ext := fp.Ext(filePath)
