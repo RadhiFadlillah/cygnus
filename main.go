@@ -204,8 +204,6 @@ func cleanStorage() {
 	}
 
 	for {
-		time.Sleep(15 * time.Minute)
-
 		// Get storage dir stat
 		stat, err := disk.Usage(storageDir)
 		if err != nil {
@@ -215,7 +213,7 @@ func cleanStorage() {
 
 		// If usage is more than max size, or free storage is less than 500 MB,
 		// remove old recorded video.
-		if (maxStorageSize > 0 && stat.Used > maxStorageSize) || stat.Free < 500*1000^2 {
+		if (maxStorageSize > 0 && stat.Used > maxStorageSize) || stat.Free < 500*1000*1000 {
 			dirItems, err := ioutil.ReadDir(storageDir)
 			if err != nil {
 				logWarn("clean storage error: get items failed:", err)
@@ -238,5 +236,7 @@ func cleanStorage() {
 
 			logrus.Println("removing old video:", oldestVideo)
 		}
+
+		time.Sleep(5 * time.Minute)
 	}
 }
