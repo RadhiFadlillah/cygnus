@@ -21,6 +21,7 @@ type WebHandler struct {
 	SessionCache   *cch.Cache
 	StorageDir     string
 	HlsSegmentsDir string
+	ChRestart      chan bool
 }
 
 // PrepareLoginCache prepares cache for future use

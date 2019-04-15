@@ -8,9 +8,10 @@ import (
 	"os/exec"
 	fp "path/filepath"
 	"strconv"
-	"sync"
+	"strings"
 
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 var developmentMode = false
@@ -18,9 +19,7 @@ var developmentMode = false
 // RaspiCam is controller for Raspberry Pi camera.
 // It's used to capture the camera stream and process it.
 type RaspiCam struct {
-	Width    int
-	Height   int
-	FlipView bool
+	DB *bolt.DB
 
 	SaveToStorage bool
 	StorageDir    string
@@ -28,10 +27,11 @@ type RaspiCam struct {
 	GenerateHlsSegments bool
 	HlsSegmentsDir      string
 
-	waitGroup   sync.WaitGroup
-	chError     chan error
-	chStop      chan struct{}
-	chChildStop map[string]chan struct{}
+	fps      int
+	width    int
+	height   int
+	rotation int
+	chStop   chan struct{}
 }
 
 // Start activates the camera, receive the stream and then process it
@@ -54,125 +54,141 @@ func (cam *RaspiCam) Start() error {
 	}
 
 	// Create channels
-	cam.waitGroup = sync.WaitGroup{}
-	cam.chError = make(chan error, 3)
 	cam.chStop = make(chan struct{})
-	cam.chChildStop = map[string]chan struct{}{
-		"raspivid":      make(chan struct{}),
-		"hlsSegment":    make(chan struct{}),
-		"saveToStorage": make(chan struct{}),
+
+	// Load settings from database
+	cam.loadSetting()
+
+	// Create cmd for child process
+	cmdRaspivid := cam.genCmdRaspivid()
+	cmdHlsSegments := cam.genCmdHlsSegments()
+	cmdSaveToStorage := cam.genCmdSaveToStorage()
+
+	// Create pipe for directing raspivid to save storage and HLS segments
+	inHlsSegments, outHlsSegments := io.Pipe()
+	inSaveToStorage, outSaveToStorage := io.Pipe()
+	outRaspivid := io.MultiWriter(outHlsSegments, outSaveToStorage)
+
+	cmdRaspivid.Stdout = outRaspivid
+	cmdHlsSegments.Stdin = inHlsSegments
+	cmdSaveToStorage.Stdin = inSaveToStorage
+
+	defer func() {
+		outHlsSegments.Close()
+		outSaveToStorage.Close()
+	}()
+
+	// Run child process for processing the camera streams
+	err = cmdRaspivid.Start()
+	if err != nil {
+		return fmt.Errorf("fail to start raspivid: %v", err)
 	}
+	logrus.Infoln("raspivid started")
 
-	// Prepare pipes for future use.
-	inputHlsSegments, outputHlsSegments := io.Pipe()
-	inputSaveToStorage, outputSaveToStorage := io.Pipe()
-	pipeWriters := io.MultiWriter(outputHlsSegments, outputSaveToStorage)
+	err = cmdHlsSegments.Start()
+	if err != nil {
+		return fmt.Errorf("fail to start HLS segmenter: %v", err)
+	}
+	logrus.Infoln("HLS segmenter started")
 
-	// Run children process for processing the camera streams
-	go cam.startRaspivid(pipeWriters)
-	go cam.saveToStorage(inputSaveToStorage)
-	go cam.generateHlsSegments(inputHlsSegments)
+	err = cmdSaveToStorage.Start()
+	if err != nil {
+		return fmt.Errorf("fail to start video saver: %v", err)
+	}
+	logrus.Infoln("video saver started")
 
-	// Block until error or stop request received
+	// Block until stop request received
 	select {
-	case err = <-cam.chError:
 	case <-cam.chStop:
+		cmdRaspivid.Process.Kill()
+		cmdHlsSegments.Process.Kill()
+		cmdSaveToStorage.Process.Kill()
 	}
-
-	// Stop all children and close its input
-	for name := range cam.chChildStop {
-		close(cam.chChildStop[name])
-	}
-
-	outputHlsSegments.Close()
-	outputSaveToStorage.Close()
-
-	// Once all children stopped, close channels
-	cam.waitGroup.Wait()
-	close(cam.chError)
-	close(cam.chStop)
 
 	logrus.Infoln("camera stopped")
-	return err
+	return nil
 }
 
 // Stop stops the camera streams.
 func (cam *RaspiCam) Stop() {
-	logrus.Infoln("stopping camera")
 	cam.chStop <- struct{}{}
 }
 
-func (cam *RaspiCam) startRaspivid(output io.Writer) {
-	logrus.Infoln("starting raspivid")
-
-	// Register wait group
-	cam.waitGroup.Add(1)
-	defer cam.waitGroup.Done()
-
-	// Prepare command for raspivid.
-	// If we are in development mode, we will work from our workstation.
-	// So, instead of using raspivid, we will use netcat to receive stream from Raspberry Pi.
-	var cmd *exec.Cmd
-	if developmentMode {
-		cmd = exec.Command("nc", "-l", "-p", "5000")
-	} else {
-		cmdArgs := []string{
-			"-t", "0",
-			"-b", "0",
-			"-qp", "30",
-			"-fps", "30",
-			"-ae", "16",
-			"-a", "1036",
-			"-a", "%Y-%m-%d %X",
-			"-w", strconv.Itoa(cam.Width),
-			"-h", strconv.Itoa(cam.Height),
-			"-vs", "-o", "-"}
-
-		if cam.FlipView {
-			cmdArgs = append(cmdArgs, "-hf", "-vf")
+func (cam *RaspiCam) loadSetting() {
+	setting := make(map[string]string)
+	cam.DB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("camera"))
+		if bucket == nil {
+			return nil
 		}
 
-		cmd = exec.Command("raspivid", cmdArgs...)
+		bucket.ForEach(func(key, val []byte) error {
+			setting[string(key)] = string(val)
+			return nil
+		})
+
+		return nil
+	})
+
+	fps, _ := strconv.Atoi(setting["fps"])
+	rotation, _ := strconv.Atoi(setting["rotation"])
+	resolutionParts := strings.SplitN(setting["resolution"], "x", 2)
+
+	if fps <= 0 {
+		fps = 30
 	}
 
-	// Start raspivid
-	cmd.Stdout = output
-	err := cmd.Start()
-	if err != nil {
-		logrus.Errorln("problem in raspivid")
-		cam.chError <- err
-		return
+	switch rotation {
+	case 0, 90, 180, 270:
+	default:
+		rotation = 0
 	}
 
-	// Watch for stop request
-	go func() {
-		select {
-		case <-cam.chChildStop["raspivid"]:
-			cmd.Process.Kill()
+	width := 800
+	height := 600
+	if len(resolutionParts) == 2 {
+		width, _ = strconv.Atoi(resolutionParts[0])
+		height, _ = strconv.Atoi(resolutionParts[1])
+
+		if width <= 0 || height <= 0 {
+			width = 800
+			height = 600
 		}
-	}()
+	}
 
-	// Wait until cmd stopped
-	cam.chError <- cmd.Wait()
-	logrus.Infoln("raspivid stopped")
+	cam.fps = fps
+	cam.width = width
+	cam.height = height
+	cam.rotation = rotation
 }
 
-func (cam *RaspiCam) saveToStorage(input io.Reader) {
-	if !cam.SaveToStorage {
-		return
+func (cam *RaspiCam) genCmdRaspivid() *exec.Cmd {
+	if developmentMode {
+		return exec.Command("nc", "-l", "-p", "5000")
 	}
 
-	logrus.Infoln("starting ffmpeg for save to storage")
+	cmdArgs := []string{
+		"-t", "0",
+		"-b", "0",
+		"-qp", "30",
+		"-ae", "16",
+		"-a", "1036",
+		"-a", "%Y-%m-%d %X",
+		"-ex", "night",
+		"-w", strconv.Itoa(cam.width),
+		"-h", strconv.Itoa(cam.height),
+		"-fps", strconv.Itoa(cam.fps),
+		"-rot", strconv.Itoa(cam.rotation),
+		"-vs", "-o", "-"}
 
-	// Register wait group
-	cam.waitGroup.Add(1)
-	defer cam.waitGroup.Done()
+	return exec.Command("raspivid", cmdArgs...)
+}
 
-	// Prepare ffmpeg for saving video's segments
+func (cam *RaspiCam) genCmdSaveToStorage() *exec.Cmd {
 	outputPath := fp.Join(cam.StorageDir, "%Y-%m-%d-%H:%M:%S.mp4")
-	cmd := exec.Command("ffmpeg", "-y",
+	return exec.Command("ffmpeg", "-y",
 		"-loglevel", "fatal",
-		"-framerate", "30",
+		"-framerate", strconv.Itoa(cam.fps),
 		"-i", "pipe:0",
 		"-codec", "copy",
 		"-f", "segment",
@@ -181,46 +197,14 @@ func (cam *RaspiCam) saveToStorage(input io.Reader) {
 		"-segment_format", "mp4",
 		"-segment_format_options", "movflags=frag_keyframe+empty_moov",
 		outputPath)
-	cmd.Stdin = input
-
-	// Start ffmpeg
-	btOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		logrus.Errorln("problem in saving to storage")
-		cam.chError <- fmt.Errorf("fail to save video: %s", btOutput)
-		return
-	}
-
-	// Watch for stop request
-	go func() {
-		select {
-		case <-cam.chChildStop["saveToStorage"]:
-			cmd.Process.Kill()
-		}
-	}()
-
-	// Wait until cmd stopped
-	cam.chError <- cmd.Wait()
-	logrus.Infoln("ffmpeg for save to storage stopped")
 }
 
-func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
-	if !cam.GenerateHlsSegments {
-		return
-	}
-
-	logrus.Infoln("starting ffmpeg for HLS segments")
-
-	// Register wait group
-	cam.waitGroup.Add(1)
-	defer cam.waitGroup.Done()
-
-	// Prepare ffmpeg for generating HLS segments
+func (cam *RaspiCam) genCmdHlsSegments() *exec.Cmd {
 	playlistPath := fp.Join(cam.HlsSegmentsDir, "playlist.m3u8")
 	segmentPath := fp.Join(cam.HlsSegmentsDir, "%d.ts")
-	cmd := exec.Command("ffmpeg", "-y",
+	return exec.Command("ffmpeg", "-y",
 		"-loglevel", "fatal",
-		"-framerate", "30",
+		"-framerate", strconv.Itoa(cam.fps),
 		"-i", "pipe:0",
 		"-codec", "copy",
 		"-bsf", "h264_mp4toannexb",
@@ -232,25 +216,4 @@ func (cam *RaspiCam) generateHlsSegments(input io.Reader) {
 		"-hls_segment_type", "mpegts",
 		"-hls_flags", "delete_segments+temp_file",
 		playlistPath)
-	cmd.Stdin = input
-
-	// Start ffmpeg
-	btOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		logrus.Errorln("problem in generating segments")
-		cam.chError <- fmt.Errorf("fail to generate segments: %s", btOutput)
-		return
-	}
-
-	// Watch for stop request
-	go func() {
-		select {
-		case <-cam.chChildStop["hlsSegment"]:
-			cmd.Process.Kill()
-		}
-	}()
-
-	// Wait until cmd stopped
-	cam.chError <- cmd.Wait()
-	logrus.Infoln("ffmpeg for HLS segments stopped")
 }

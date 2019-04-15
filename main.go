@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,12 +12,11 @@ import (
 	fp "path/filepath"
 	"time"
 
-	"github.com/shirou/gopsutil/disk"
-
 	"github.com/RadhiFadlillah/cygnus/camera"
 	"github.com/RadhiFadlillah/cygnus/handler"
 	"github.com/julienschmidt/httprouter"
 	cch "github.com/patrickmn/go-cache"
+	"github.com/shirou/gopsutil/disk"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
@@ -52,33 +52,51 @@ func main() {
 	}
 
 	// Open database
-	db, err := bolt.Open(dbPath, os.ModePerm, nil)
+	db, err := prepareDatabase()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer db.Close()
 
-	// Prepare channel
+	// Clean old videos in background
+	go cleanStorage()
+
+	// Prepare channels
 	chError := make(chan error)
-	defer close(chError)
+	chRestart := make(chan bool)
+	defer func() {
+		close(chError)
+		close(chRestart)
+	}()
 
-	// Start camera, web server and storage cleaner
-	go startCamera(chError)
-	go serveWebView(db, chError)
-	go cleanStorage(chError)
-
-	// Watch channel until error received
-	select {
-	case err := <-chError:
-		logrus.Fatalln(err)
-	}
+	// Start CCTV system
+	startCctvSystem(db, chError, chRestart)
 }
 
-func startCamera(chError chan error) {
-	cam := camera.RaspiCam{
-		Width:    camWidth,
-		Height:   camHeight,
-		FlipView: camFlip,
+func prepareDatabase() (*bolt.DB, error) {
+	db, err := bolt.Open(dbPath, os.ModePerm, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	db.Update(func(tx *bolt.Tx) error {
+		bucket, _ := tx.CreateBucketIfNotExists([]byte("camera"))
+		if bucket.Stats().KeyN == 0 {
+			bucket.Put([]byte("fps"), []byte("30"))
+			bucket.Put([]byte("rotation"), []byte("0"))
+			bucket.Put([]byte("resolution"), []byte("800x600"))
+		}
+
+		return nil
+	})
+
+	return db, nil
+}
+
+func startCctvSystem(db *bolt.DB, chError chan error, chRestart chan bool) {
+	// Prepare camera
+	cam := &camera.RaspiCam{
+		DB: db,
 
 		GenerateHlsSegments: true,
 		HlsSegmentsDir:      segmentsDir,
@@ -87,33 +105,26 @@ func startCamera(chError chan error) {
 		StorageDir:    storageDir,
 	}
 
-	err := cam.Start()
-	if err != nil {
-		chError <- fmt.Errorf("camera error: %v", err)
-	}
-}
-
-func serveWebView(db *bolt.DB, chError chan error) {
+	// Prepare web handler
 	hdl := handler.WebHandler{
 		DB:             db,
 		StorageDir:     storageDir,
 		HlsSegmentsDir: segmentsDir,
 		UserCache:      cch.New(time.Hour, 10*time.Minute),
 		SessionCache:   cch.New(time.Hour, 10*time.Minute),
+		ChRestart:      chRestart,
 	}
 
 	hdl.PrepareLoginCache()
 
-	// Create router
+	// Prepare router
 	router := httprouter.New()
 
-	// Serve files
-	router.GET("/fonts/*filepath", hdl.ServeFile)
+	router.GET("/js/*filepath", hdl.ServeJsFile)
 	router.GET("/res/*filepath", hdl.ServeFile)
 	router.GET("/css/*filepath", hdl.ServeFile)
-	router.GET("/js/*filepath", hdl.ServeJsFile)
+	router.GET("/fonts/*filepath", hdl.ServeFile)
 
-	// Serve UI
 	router.GET("/", hdl.ServeIndexPage)
 	router.GET("/login", hdl.ServeLoginPage)
 	router.GET("/live/playlist", hdl.ServeLivePlaylist)
@@ -122,25 +133,62 @@ func serveWebView(db *bolt.DB, chError chan error) {
 	router.GET("/video/:name/playlist", hdl.ServeVideoPlaylist)
 	router.GET("/video/:name/stream/:index", hdl.ServeVideoSegment)
 
-	// Serve API
 	router.POST("/api/login", hdl.APILogin)
 	router.POST("/api/logout", hdl.APILogout)
 	router.GET("/api/storage", hdl.APIGetStorageFiles)
+
 	router.GET("/api/user", hdl.APIGetUsers)
 	router.POST("/api/user", hdl.APIInsertUser)
 	router.DELETE("/api/user/:username", hdl.APIDeleteUser)
 
-	// Panic handler
+	router.GET("/api/setting", hdl.APIGetSetting)
+	router.GET("/api/setting/camera", hdl.APIGetCameraSetting)
+	router.POST("/api/setting/camera", hdl.APISaveCameraSetting)
+	router.POST("/api/setting/reboot", hdl.APIRebootCamera)
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {
 		http.Error(w, fmt.Sprint(arg), 500)
 	}
 
-	// Serve app
-	strPortNumber := fmt.Sprintf(":%d", portNumber)
-	logrus.Println("web server running in port " + strPortNumber)
-	err := http.ListenAndServe(strPortNumber, router)
-	if err != nil {
-		chError <- fmt.Errorf("web server error: %v", err)
+	// Prepare server
+	serverAddr := fmt.Sprintf(":%d", portNumber)
+	server := &http.Server{
+		Addr:    serverAddr,
+		Handler: router,
+	}
+
+	// Capture camera stream in background thread
+	go func() {
+		err := cam.Start()
+		if err != nil {
+			chError <- fmt.Errorf("camera error: %v", err)
+		}
+	}()
+
+	// Serve web app in background thread
+	go func() {
+		logrus.Println("web server started in " + serverAddr)
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			chError <- fmt.Errorf("web server error: %v", err)
+		}
+	}()
+
+	// Watch channel until error received, or restart request received
+	select {
+	case err := <-chError:
+		logrus.Fatalln(err)
+	case <-chRestart:
+		logrus.Println("restart request received")
+
+		cam.Stop()
+		if err := server.Shutdown(context.Background()); err != nil {
+			logrus.Fatalln("HERE", err)
+		}
+		logrus.Println("web server stopped")
+
+		time.Sleep(3 * time.Second)
+		startCctvSystem(db, chError, chRestart)
 	}
 }
 
@@ -150,7 +198,7 @@ func serveWebView(db *bolt.DB, chError chan error) {
 //
 // Unlike startCamera and serveWebView, it's fine if removal failed.
 // So, if error happened, we just add warning log.
-func cleanStorage(chError chan error) {
+func cleanStorage() {
 	logWarn := func(a ...interface{}) {
 		logrus.Warnln(a...)
 	}
