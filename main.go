@@ -183,7 +183,7 @@ func startCctvSystem(db *bolt.DB, chError chan error, chRestart chan bool) {
 
 		cam.Stop()
 		if err := server.Shutdown(context.Background()); err != nil {
-			logrus.Fatalln("HERE", err)
+			logrus.Fatalln("failed to shutdown server:", err)
 		}
 		logrus.Println("web server stopped")
 
@@ -213,7 +213,8 @@ func cleanStorage() {
 
 		// If usage is more than max size, or free storage is less than 500 MB,
 		// remove old recorded video.
-		if (maxStorageSize > 0 && stat.Used > maxStorageSize) || stat.Free < 500*1000*1000 {
+		mbFree := float64(stat.Free) / 1000 / 1000
+		if (maxStorageSize > 0 && stat.Used > maxStorageSize) || mbFree < 500 {
 			dirItems, err := ioutil.ReadDir(storageDir)
 			if err != nil {
 				logWarn("clean storage error: get items failed:", err)
@@ -234,9 +235,9 @@ func cleanStorage() {
 				continue
 			}
 
-			logrus.Println("removing old video:", oldestVideo)
+			logrus.Printf("free space %.0f MB, removing old video: %s", mbFree, oldestVideo)
 		}
 
-		time.Sleep(5 * time.Minute)
+		time.Sleep(time.Minute)
 	}
 }
